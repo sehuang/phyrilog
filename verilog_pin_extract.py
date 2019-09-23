@@ -39,20 +39,25 @@ class VerilogModule:
 								'pins': self.pins}
 
 	def _get_top_module_line_no(self, line_list, top):
+		"""Finds the beginning of the module definition."""
+
 		checkstr = "module " + top
 		for line in line_list:
 			if checkstr in line:
 				return line_list.index(line)
 
 	def _get_pin_def_list(self, line_list, top_line_no):
+		"""Returns list of strings containing the module and port definitions."""
+
 		for line in line_list[top_line_no:]:
 			if ");" in line:
-				end_idx = line_list.index(line) + 1
+				end_idx = line_list[top_line_no:].index(line)
 				break
-		pin_def_list = self._strip_comments(line_list[top_line_no:end_idx])
+		pin_def_list = self._strip_comments(line_list[top_line_no:top_line_no + end_idx])
 		return pin_def_list
 
 	def _strip_comments(self, line_list):
+		"""Removes comments from lines."""
 		new_line_list = []
 		for line in line_list:
 			if re.search("//",line):
@@ -64,6 +69,9 @@ class VerilogModule:
 		return new_line_list
 
 	def _get_params_and_values(self, pins_str):
+		"""Extracts parameter definitions from string and compiles parameter dictionary.
+		Also extracts constants from Verilog header files."""
+
 		params_str = re.findall(r"(?<=#\().*(?=\)\()", pins_str)
 		if len(params_str) > 0:
 			params_str = params_str[0]
@@ -85,39 +93,49 @@ class VerilogModule:
 
 		return pins_str[pins_str.index(params_str) + len(params_str):]
 
+	def _eval_param_op(self, string):
+		"""Evaluates operation for bus indices when netlist uses parameters. This method
+		recurs until it runs out of string to try evaluating"""
+
+		left_exp = re.findall(r"[\w]+(?=[+\-*/])", string)
+		right_exp = re.findall(r"(?<=[+\-*/])[\w]+", string)
+		operator = re.findall(r"[+\-*/]", string)[0]
+		if len(left_exp) == 0 or len(right_exp) == 0:
+			raise KeyError(f"Parameter {string} not defined.")
+		else:
+			left_exp = left_exp[0]
+			right_exp = right_exp[0]
+		try:
+			left_exp = self.params[left_exp] if not left_exp.isdigit() else left_exp
+		except KeyError: # This might itself be another operation!
+			left_exp = self._eval_param_op(left_exp)
+		try:
+			right_exp = self.params[right_exp] if not right_exp.isdigit() else right_exp
+		except KeyError: # This might itself be another operation!
+			right_exp = self._eval_param_op(right_exp)
+		index = self.op_lut[operator](int(left_exp), int(right_exp))
+		return index
+
+
 	def _bus_parser(self, bus_idx):
-		# bus_idx = re.findall(r"\[\w+:\w+\]", pin_str)[0]
+		"""Parses bus indices from [X:Y] string. This method can handle non-numeric
+		index definitions."""
+
 		limits = bus_idx[1:-1].split(":")
 		if not limits[0].isdigit():
 			try:
 				bus_max = self.params[limits[0]]
-			except KeyError:
-				try:
-					left_exp = re.findall(r"[\w]+(?=[+\-*/])", limits[0])[0]
-					right_exp = re.findall(r"(?<=[+\-*/])[\w]+", limits[0])[0]
-					operator = re.findall(r"[+\-*/]", limits[0])[0]
-					left_exp = self.params[left_exp] if not left_exp.isdigit() else left_exp
-					right_exp = self.params[right_exp] if not right_exp.isdigit() else right_exp
-					bus_max = self.op_lut[operator](int(left_exp), int(right_exp))
-				except KeyError:
-					raise KeyError("Parameter " + limits[0] + " is not defined.")
+			except KeyError: # Max index is probably an operation
+				bus_max = self._eval_param_op(limits[0])
 		else:
-			bus_max = limits[0]
+			bus_max = int(limits[0])
 		if not limits[1].isdigit():
 			try:
 				bus_min = self.params[limits[1]]
-			except KeyError:
-				try:
-					left_exp = re.findall(r"[\w]+(?=[+\-*/])", limits[1])[0]
-					right_exp = re.findall(r"(?<=[+\-*/])[\w]+", limits[1])[0]
-					operator = re.findall(r"[+\-*/]", limits[1])[0]
-					left_exp = self.params[left_exp] if not left_exp.isdigit() else left_exp
-					right_exp = self.params[right_exp] if not right_exp.isdigit() else right_exp
-					bus_min = self.op_lut[operator](int(left_exp), int(right_exp))
-				except KeyError:
-					raise KeyError("Parameter " + limits[0] + " is not defined.")
+			except KeyError: # Min index is probably an operation
+				bus_min = self._eval_param_op(limits[1])
 		else:
-			bus_min = limits[1]
+			bus_min = int(limits[1])
 
 		bus_lim_dict = {"is_bus": True,
 						"bus_max": bus_max,
@@ -125,6 +143,8 @@ class VerilogModule:
 		return bus_lim_dict
 
 	def _parse_pin_def_list(self, pin_def_list):
+		"""Extracts pin list from string and compiles pin dictionary."""
+
 		if len(pin_def_list) == 1:
 			pins_str = pin_def_list[0]
 		else:
@@ -132,11 +152,16 @@ class VerilogModule:
 			for pin in pin_def_list:
 				pins_str += pin
 		pins_str = self._get_params_and_values(pins_str)
-		pins_str_match = re.findall(r"(?<=\().*(?=\))", pins_str)[0]
-		pins_str_list = pins_str_match.split(',')
+		pins_str_match = re.findall(r"(?<=\().*", pins_str)
+		if len(pins_str_match) == 0:
+			pins_str_match = re.findall(r"(?<=\)\().*", pins_str)
+		pins_str_list = pins_str_match[0].split(',')
 		for pin in pins_str_list:
 			parts = pin.split()
-			direction = parts[0]
+			try:
+				direction = parts[0]
+			except:
+				continue
 			# name = re.match(r'\w', parts[-1]).string
 			name = parts[-1]
 			bus_idx = re.findall(r"\[.*\]", pin)
