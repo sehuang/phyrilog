@@ -1,0 +1,23 @@
+lines: [""]
+lef: ""
+filename: ""
+path: ""
+blocks:
+  typeA: [{
+            lines: [""]
+            blocks:
+              typeAA: [{ lines: [""]
+                         blocks:
+                           typeAAA: [{
+                                      ...
+                                     }]},
+                       {lines: [""]
+                          blocks:
+                            typeAAB: [{
+                                        ...
+                                      }]},
+                       ...
+          }],
+
+      lines: [""]
+  typeB:
