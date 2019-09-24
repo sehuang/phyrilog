@@ -29,6 +29,7 @@ def test_v2lef(spec_dict):
 
 if __name__ == '__main__':
 	spec_dict = {'pin_margin': True,
+				 'site': 'coreSite',
 				 'pins': {
 					 'h_layer': 'M4',
 					 'v_layer': 'M5'
