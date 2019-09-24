@@ -3,7 +3,10 @@ ywidth: "height of design"
 aspect_ratio: "desired aspect ratio given 1 or fewer width specs. Defining both xwidth and ywidth overrides this parameter"
 input_side: "define side to put all input pins on. Default left side"
 output_side: "define side to put all output pins on. Default right side"
+pin_margin: "Should the design be flush with the first/last pins on each side (False) or not (True)?"
 pins:
+  h_layer: "horizontal metal layer for pins"
+  v_layer: "vertical metal layer for pins"
   pinA: # Script will automatically grab names from the keys here
     layer: "layer of pin shape"
     xwidth: "width of pin. default min track width for vert pin, 1um for horiz pin"
