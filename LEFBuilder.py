@@ -1,16 +1,34 @@
+from verilog2lef import PHYDesign
+
 class LEFBuilder:
 	"""API for ease of building a LEF file."""
 	def __init__(self):
-		self.lines = ""
+		self.lines = []
 		self.blocks = {}
 
-	def add_lef_header(self, version, bus_bit_chars="[]", divider_char="/"):
-		self.lines.append(f"VERSION {version}")
-		bus_bit_char_str = "\"" + str(bus_bit_chars) + "\""
-		self.lines.append("BUSBITCHARS " + "\"" + str(bus_bit_chars) + "\"")
-		self.lines.append("DIVIDERCHAR " + "\"" + str(divider_char) + "\"")
+	def add_lef_header(self, version=None, bus_bit_chars="[]", divider_char="/"):
+		lines = []
+		lines.append(f"VERSION {version}")
+		lines.append("BUSBITCHARS " + "\"" + str(bus_bit_chars) + "\"")
+		lines.append("DIVIDERCHAR " + "\"" + str(divider_char) + "\"")
+		return lines
 
-	def add_block(self, type, name):
+	def add_block(self, parent, type, name, lines):
 		"""LEF Blocks are usually grouped under similar indentation"""
-		block_dict = {"name_str":name}
+		parent['blocks'] = {}
+		parent['blocks'][type] = {'name': name,
+								  'lines': lines}
+
+	# def add_pin
+
+class BBoxLEFBuilder(LEFBuilder):
+
+	def __init__(self):
+		super().__init__()
+
+	def make_lef(self, thing: PHYDesign):
+		pins = thing.pins
+		bbox = thing.bbox
+		name = thing.name
+		header_lines = self.add_lef_header(version=5.6)
 
