@@ -8,14 +8,18 @@ blocks:
             blocks:
               typeAA: [{ lines: [""]
                          blocks:
-                           typeAAA: [{
-                                      ...
-                                     }]},
+                           PORT: {
+                                   layers: {
+                                   Layer1: ...
+                                   Layer2: ...
+                                   }
+                                  }
+                                     },
                        {lines: [""]
                           blocks:
                             typeAAB: [{
                                         ...
-                                      }]},
+                                      }]}],
                        ...
           }],
 
