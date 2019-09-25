@@ -39,7 +39,7 @@ class PHYPortPin(PHYObject):
 		if layer in self.phys_map.keys():
 			self.phys_map[layer]['coord'].append = [left_x, bot_y, left_x + self.x_width, bot_y + self.y_width]
 		else:
-			self.phys_map[layer] = [[left_x, bot_y, left_x + self.x_width, bot_y + self.y_width]]
+			self.phys_map[layer] = [[left_x, bot_y, round(left_x + self.x_width, 3), round(bot_y + self.y_width, 3)]]
 
 	def write_lef_block_struct(self, bus_idx=None):
 		direction_str = f"DIRECTION {self.direction} ;"
