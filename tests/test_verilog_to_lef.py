@@ -1,5 +1,6 @@
 from verilog_pin_extract import VerilogModule
 from verilog2lef import *
+from LEFBuilder import *
 import pprint
 import pathlib  # I hate you Microsoft
 
@@ -33,6 +34,11 @@ if __name__ == '__main__':
 				 'pins': {
 					 'h_layer': 'M4',
 					 'v_layer': 'M5'
-				 }}
+				 },
+				 'exclude_layers': ['Pad']}
 	bbox = test_v2lef(spec_dict)
+	bbox_lef = BBoxLEFBuilder()
+	bbox_lef.make_lef_dict(bbox)
 	print(bbox.pins['sum_0'].phys_map)
+	pprint.pprint(bbox_lef.blocks)
+
