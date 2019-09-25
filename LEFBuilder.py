@@ -1,20 +1,80 @@
 from verilog2lef import PHYDesign
 
 class LEFBlock:
-    def __init__(self, type, lines):
+    def __init__(self, type, name, lines):
         self.type = type
+        self.name = name
         self.lines = lines
         self.blocks = {}
+        self.type_list = set()
+        self.layers = {}
 
-class LEFBuilder:
+    def add_block(self, block_type, name, lines):
+        """LEF Blocks are usually grouped under similar indentation"""
+        new_block = LEFBlock(block_type, name, lines)
+        self.blocks[name] = new_block
+        self.type_list.add(block_type)
+        return new_block
+
+    def add_layer(self, layer_name, layer_list):
+        if not self.layers.get(layer_name, None):
+            new_layer = LEFLayer(layer_name)
+            self.layers[layer_name] = new_layer
+            layer = new_layer
+        else:
+            layer = self.layers[layer_name]
+        for rect in layer_list:
+            layer.add_rect([str(x) for x in rect])
+        return layer
+
+    def add_pin(self, name, pin_obj):
+        new_pin = LEFPin(name, pin_obj)
+        self.blocks[name] = new_pin
+        new_pin.add_port(pin_obj.phys_map)
+
+    def add_bbox_obs(self, bbox_phys_map):
+        self.add_block('OBS', '', [])
+        for layer_name, layer_list in bbox_phys_map:
+            self.add_layer(layer_name, layer_list)
+
+
+    # def add_pin(self, pin_name, pin_obj):
+    #     lines = []
+    #     lines.append(f"DIRECTION {pin_obj.direction.upper()}")
+    #     lines.append(f"USE SIGNAL")
+    #     self.add_block('PIN', pin_name, lines)
+
+class LEFPin(LEFBlock):
+    def __init__(self, pin_name, pin_obj):
+        super().__init__('PIN', pin_name, [])
+        self.lines.append(f"DIRECTION {pin_obj.direction.upper()}")
+        self.lines.append(f"USE SIGNAL")
+
+    def add_port(self, pin_phys_map):
+        new_port = self.add_block('PORT', '', [])
+        for layer_name, layer_list in pin_phys_map.items():
+            new_port.add_layer(layer_name, layer_list)
+
+class LEFLayer(LEFBlock):
+    def __init__(self, layer):
+        super().__init__('LAYER', layer, [])
+        self.rects = []
+
+    def add_rect(self, coords):
+        coord_str = " ".join(coords)
+        self.rects.append("RECT " + coord_str)
+
+class LEFBuilder(LEFBlock):
     """API for ease of building a LEF file."""
 
-    def __init__(self, filename=None, path=None):
-        self.lines = []
+    def __init__(self, filename=None, path=None, indent_char_width=4):
+        super().__init__('top', 'top', [])
         self.blocks = {}
+        self.lines = []
         self.lef = ""
         self.filename = filename
         self.path = path
+        self.indent_step = indent_char_width
 
     def add_lef_header(self, version=None, bus_bit_chars="[]", divider_char="/"):
         lines = []
@@ -23,40 +83,7 @@ class LEFBuilder:
         lines.append("DIVIDERCHAR " + "\"" + str(divider_char) + "\"")
         return lines
 
-    def add_block(self, parent, block_type, name, lines):
-        """LEF Blocks are usually grouped under similar indentation"""
-        if not parent.get('blocks', None):
-            parent['blocks'] = {}
-        if not parent['blocks'].get(block_type, None):
-            parent['blocks'][block_type] = []
-        parent['blocks'][block_type].append({'name': name,
-                                       'lines': lines})
 
-    def add_layer(self, parent, layer_name, layer_list):
-        if not parent.get('layers', None):
-            parent['layers'] = {}
-        if not parent['layers'].get(layer_name, None):
-            parent['layers'][layer_name] = {}
-        for rect in layer_list:
-            self.add_rect(parent[layer_name], rect)
-
-    def add_port(self, parent, pin_phys_map):
-        self.add_block(parent, 'PORT', '', [])
-        for layer_name, layer_list in pin_phys_map.items():
-            self.add_layer(parent, layer_name, layer_list)
-
-    def add_rect(self, parent, corners):
-        coords = " ".join(corners)
-        if not parent.get('rects', None):
-            parent['rects'] = []
-        parent['rects'].append("RECT " + coords)
-
-    def add_pin(self, parent, name, pin_obj):
-        lines = []
-        lines.append(f"DIRECTION {pin_obj.direction.upper()}")
-        lines.append(f"USE SIGNAL")
-        self.add_block(parent, 'PIN', name, lines)
-        self.add_port(parent['PIN'][-1], pin_obj.phys_map)
 
     # def add_pin(self, parent, name, lines):
 
@@ -91,11 +118,6 @@ class BBoxLEFBuilder(LEFBuilder):
     def __init__(self):
         super().__init__()
 
-    def add_bbox_obs(self, parent, bbox_phys_map):
-        self.add_block(parent, 'OBS', '', [])
-        for layer_name, layer_list in bbox_phys_map:
-            self.add_layer(parent, layer_name, layer_list)
-
     def make_lef_dict(self, phy_design: PHYDesign):
         pins = phy_design.pins
         bbox = phy_design.bboxes
@@ -112,10 +134,9 @@ class BBoxLEFBuilder(LEFBuilder):
         # Macro lines
         macro_lines = [class_line, origin_line, size_line, sym_line, site_line]
 
-        self.add_block(self.blocks, 'MACRO', phy_design.name, lines=macro_lines)
-        macro_block = self.blocks['MACRO']
-        for pin in pins:
-            self.add_pin(self.blocks['MACRO'], pin.name, pin)
-        for bbox in bbox:
-            self.add_bbox_obs(self.blocks['MACRO'])
+        macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
+        for pin_name, pin in pins.items():
+            macro_block.add_pin(pin_name, pin)
+        for bbox in bbox.values():
+            macro_block.add_bbox_obs(bbox.phys_map)
 
