@@ -280,8 +280,12 @@ class BBoxPHY(PHYDesign):
 		bot_pin_lower_corner =[round(round((bbox_bot_left_corner[0] + x_corr) / v_pin_width), 3), 0]
 		top_pin_lower_corner =[round(round((bbox_top_right_corner[0] + x_corr) / v_pin_width), 3), self.y_width]
 
+		bbox_layers = []
+		for layer in self.metals:
+			if layer not in self.specs['exclude_layers']:
+				bbox_layers.append(layer)
 		self.bboxes = {
-			'BBOX': PHYBBox(self.metals.keys(), bbox_bot_left_corner[0], bbox_bot_left_corner[1], self.bbox_x_width,
+			'BBOX': PHYBBox(bbox_layers, bbox_bot_left_corner[0], bbox_bot_left_corner[1], self.bbox_x_width,
 							self.bbox_y_width)}
 		for pin in self.pin_sides_dict['left']:
 			pin.add_rect(self.specs['pins']['h_layer'], left_pin_lower_corner[0], left_pin_lower_corner[1])
