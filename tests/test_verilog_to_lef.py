@@ -41,4 +41,5 @@ if __name__ == '__main__':
 	bbox_lef.make_lef_dict(bbox)
 	print(bbox.pins['sum_0'].phys_map)
 	pprint.pprint(bbox_lef.blocks)
+	pprint.pprint(bbox_lef.blocks[test2_mod.name].blocks[''].type)
 

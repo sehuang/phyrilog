@@ -90,21 +90,45 @@ class LEFBuilder(LEFBlock):
     # def add_macro(self, name, lines):
     #     parent = self.blocks
 
+    def build_layer(self, layer, level):
+        line_list = []
+        layer_header = " ".join([layer.type, layer.name, ' ;'])
+        line_list.append(layer_header.rjust(len(layer_header) + (level * self.indent_step)))
+        for rect in layer.rects:
+            rect_str = " ".join(['RECT'] + [str(i) for i in rect] + [';'])
+            line_list.append(rect_str)
+        out_str = '\n'.join(line_list)
+        return out_str
 
     def build_block(self, block, level):
-        str_out = ""
-        for block_type in block.keys():
-            for block_dict in block[block_type]:
-                block_header = '\t' * (level + 1) + block_type + " " + block_dict['name'] + '\n'
-                str_out += block_header
-                for line in block_dict['lines']:
-                    str_out += '\t' * (level + 1) + line + " ;\n"
-                if block.get('blocks', None):
-                    for block in block['blocks']:
-                        str_out += self.build_block(block, level + 1)
-        return str_out
+        line_list = []
+        block_header = " ".join([block.type, block.name])
+        line_list.append(block_header.rjust(len(block_header) + (level * self.indent_step)))
+        line_list += self.lines
+        if block.blocks:
+            for block_obj in block.blocks.values():
+                block_str = self.build_block(block_obj, level + 1)
+                line_list.append(block_str)
+        if block.layers:
+            for layer in block.layers.values():
+                layer_str = self.build_layer(layer, level + 1)
+                line_list.append(layer_str)
+        out_str = '\n'.join(line_list)
+
+
+        # for block_type in block.keys():
+        #     for block_dict in block[block_type]:
+        #         block_header = '\t' * (level + 1) + block_type + " " + block_dict['name'] + '\n'
+        #         str_out += block_header
+        #         for line in block_dict['lines']:
+        #             str_out += '\t' * (level + 1) + line + " ;\n"
+        #         if block.get('blocks', None):
+        #             for block in block['blocks']:
+        #                 str_out += self.build_block(block, level + 1)
+        return out_str
 
     def build_lef(self):
+        line_list = []
         for line in self.lines:
             self.lef += line + " ;\n"
 
