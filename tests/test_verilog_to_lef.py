@@ -1,5 +1,5 @@
 from verilog_pin_extract import VerilogModule
-from verilog2lef import *
+from verilog2phy import *
 from LEFBuilder import *
 import pprint
 import pathlib  # I hate you Microsoft

@@ -1,4 +1,4 @@
-from verilog2lef import PHYDesign
+from verilog2phy import PHYDesign
 
 class LEFBlock:
     def __init__(self, type, name, lines):
