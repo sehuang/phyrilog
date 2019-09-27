@@ -11,5 +11,15 @@ pins:
     layer: "layer of pin shape"
     xwidth: "width of pin. default min track width for vert pin, 1um for horiz pin"
     ywidth: "height of pin. default min track width for horiz pin, 1um for vert pin"
+    center: "center of pin"
     side: "side of design for pin. overrides general input/output side specification"
     range: "[A,B] range of bus bits which these specs apply to."
+pg_pins:
+  h_layer: "horizontal metal layer for pins"
+  v_layer: "vertical metal layer for pins"
+  pwr_pin:
+    layer:
+    xwidth:
+    ywidth:
+    center:
+    side:

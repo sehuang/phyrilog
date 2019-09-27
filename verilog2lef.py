@@ -72,6 +72,7 @@ class PHYDesign:
 
 	def __init__(self, verilog_module, techfile, spec_dict=None):
 		self.verilog_pin_dict = verilog_module.pins
+		self.verilog_pg_pin_dict = verilog_module.power_pins
 		self.name = verilog_module.name
 
 		filetype = techfile.split('.')[-1].lower()  # This normally expects a HAMMER tech.json
@@ -84,7 +85,8 @@ class PHYDesign:
 
 		self.spec_dict = spec_dict
 		self.pins = {}
-		self.defaults = {'origin': [0,0],
+		self.pg_pins = {}
+		self.defaults = {'origin': [0, 0],
 						 'input_side': 'left',
 						 'output_side': 'right',
 						 'aspect_ratio': [1, 1],
@@ -93,14 +95,17 @@ class PHYDesign:
 						 'site': 'core',
 						 'pins': {'h_layer': "M2",
 								  'v_layer': "M3"
-								  }
+								  },
+						 'pg_pins': {'h_layer': "M2",
+									 'v_layer': "M3",
+									 'pwr_pin':{},
+									 'gnd_pin':{}}
 						 }
 		self.specs = self.defaults
 		if spec_dict:
 			self.specs.update(spec_dict)
 		self.x_width = self.specs.get('xwidth', None)
 		self.y_width = self.specs.get('ywidth', None)
-
 
 	def _extract_tech_json_info(self, techfile):
 		with open(techfile) as file:
@@ -109,6 +114,22 @@ class PHYDesign:
 		self.metals = {}
 		for layer in stackups:
 			self.metals[layer['name']] = layer
+
+	def add_pg_pin_objects(self):
+		power_pin_name = self.verilog_pg_pin_dict['power_pin']
+		ground_pin_name = self.verilog_pg_pin_dict['ground_pin']
+
+		pwr_pin_dict = {'name': power_pin_name,
+						'direction': 'power',
+						'is_analog': False}
+		pwr_pin = PHYPortPin(pwr_pin_dict, self.specs['pg_pins']['pwr_pin']['layer'],
+							 self.specs['pg_pins']['pwr_pin']['side'], round(self.specs['pg_pins']['pwr_pin']['xwidth'], 3),
+							 round(self.specs['pg_pins']['pwr_pin']['ywidth'], 3))
+		gnd_pin = PHYPortPin(pwr_pin_dict, self.specs['pg_pins']['gnd_pin']['layer'],
+							 self.specs['pg_pins']['gnd_pin']['side'], round(self.specs['pg_pins']['gnd_pin']['xwidth'], 3),
+							 round(self.specs['pg_pins']['gnd_pin']['ywidth'], 3))
+		self.pg_pins['pwr'] = pwr_pin
+		self.pg_pins['gnd'] = gnd_pin
 
 	def add_pin_objects(self):
 		self.n_inputs = 0
@@ -178,12 +199,13 @@ class PHYDesign:
 				self.n_inputs += (direction == 'input') * (pin_info['bus_max'] + 1)
 				self.n_outputs += (direction == 'output') * (pin_info['bus_max'] + 1)
 				for pin in range(pin_info['bus_max'] + 1):
-					self.pins[pin_name + '_' + str(pin)] = PHYPortPin(pin_info, layer, side, round(x_width,3), round(y_width,3),
+					self.pins[pin_name + '_' + str(pin)] = PHYPortPin(pin_info, layer, side, round(x_width, 3),
+																	  round(y_width, 3),
 																	  bus_idx=pin)
 			else:
 				self.n_inputs += direction == 'input'
 				self.n_outputs += direction == 'output'
-				self.pins[pin_name] = PHYPortPin(pin_info, layer, side, round(x_width,3), round(y_width,3))
+				self.pins[pin_name] = PHYPortPin(pin_info, layer, side, round(x_width, 3), round(y_width, 3))
 
 	def define_design_boundaries(self):
 		pass
@@ -215,9 +237,9 @@ class BBoxPHY(PHYDesign):
 			y_width = None  # Wait until later to figure this out
 
 		self.pin_sides_dict = {'left': [],
-						  'right': [],
-						  'top': [],
-						  'bottom': []}
+							   'right': [],
+							   'top': [],
+							   'bottom': []}
 		for pin in self.pins.values():
 			self.pin_sides_dict[pin.side].append(pin)
 		min_y_pins = max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right']))
@@ -254,7 +276,7 @@ class BBoxPHY(PHYDesign):
 			y_width = y_width + h_pin_pitch
 		self.bbox_x_width = round(x_width, 3)
 		self.bbox_y_width = round(y_width, 3)
-		self.bbox_left_margin = round(max([pin.x_width for pin in  self.pin_sides_dict['left']], default=0), 3)
+		self.bbox_left_margin = round(max([pin.x_width for pin in self.pin_sides_dict['left']], default=0), 3)
 		self.bbox_right_margin = round(max([pin.x_width for pin in self.pin_sides_dict['right']], default=0), 3)
 		self.bbox_top_margin = round(max([pin.y_width for pin in self.pin_sides_dict['top']], default=0), 3)
 		self.bbox_bot_margin = round(max([pin.y_width for pin in self.pin_sides_dict['bottom']], default=0), 3)
@@ -275,10 +297,12 @@ class BBoxPHY(PHYDesign):
 		else:
 			x_corr = 0
 			y_corr = 0
-		left_pin_lower_corner = [bbox_bot_left_corner[0], round(round((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch, 3)]
-		right_pin_lower_corner = [bbox_top_right_corner[0], round(round((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch, 3)]
-		bot_pin_lower_corner =[round(round((bbox_bot_left_corner[0] + x_corr) / v_pin_width), 3), 0]
-		top_pin_lower_corner =[round(round((bbox_top_right_corner[0] + x_corr) / v_pin_width), 3), self.y_width]
+		left_pin_lower_corner = [bbox_bot_left_corner[0],
+								 round(round((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch, 3)]
+		right_pin_lower_corner = [bbox_top_right_corner[0],
+								  round(round((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch, 3)]
+		bot_pin_lower_corner = [round(round((bbox_bot_left_corner[0] + x_corr) / v_pin_width), 3), 0]
+		top_pin_lower_corner = [round(round((bbox_top_right_corner[0] + x_corr) / v_pin_width), 3), self.y_width]
 
 		bbox_layers = []
 		for layer in self.metals:
