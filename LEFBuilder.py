@@ -33,9 +33,9 @@ class LEFBlock:
         new_pin.add_port(pin_obj.phys_map)
 
     def add_bbox_obs(self, bbox_phys_map):
-        self.add_block('OBS', '', [])
-        for layer_name, layer_list in bbox_phys_map:
-            self.add_layer(layer_name, layer_list)
+        new_obs = self.add_block('OBS', '', [])
+        for layer_name, layer_list in bbox_phys_map.items():
+            new_obs.add_layer(layer_name, layer_list)
 
 
     # def add_pin(self, pin_name, pin_obj):
@@ -62,12 +62,12 @@ class LEFLayer(LEFBlock):
 
     def add_rect(self, coords):
         coord_str = " ".join(coords)
-        self.rects.append("RECT " + coord_str)
+        self.rects.append("RECT " + coord_str + " ;")
 
 class LEFBuilder(LEFBlock):
     """API for ease of building a LEF file."""
 
-    def __init__(self, filename=None, path=None, indent_char_width=4):
+    def __init__(self, filename='', path='', indent_char_width=2):
         super().__init__('top', 'top', [])
         self.blocks = {}
         self.lines = []
@@ -83,8 +83,6 @@ class LEFBuilder(LEFBlock):
         lines.append("DIVIDERCHAR " + "\"" + str(divider_char) + "\"")
         return lines
 
-
-
     # def add_pin(self, parent, name, lines):
 
     # def add_macro(self, name, lines):
@@ -92,10 +90,10 @@ class LEFBuilder(LEFBlock):
 
     def build_layer(self, layer, level):
         line_list = []
-        layer_header = " ".join([layer.type, layer.name, ' ;'])
+        layer_header = " ".join([layer.type, layer.name, ';'])
         line_list.append(layer_header.rjust(len(layer_header) + (level * self.indent_step)))
-        for rect in layer.rects:
-            rect_str = " ".join(['RECT'] + [str(i) for i in rect] + [';'])
+        for rect_str in layer.rects:
+            rect_str = rect_str.rjust(len(rect_str) + (level + 1) * self.indent_step)
             line_list.append(rect_str)
         out_str = '\n'.join(line_list)
         return out_str
@@ -104,7 +102,8 @@ class LEFBuilder(LEFBlock):
         line_list = []
         block_header = " ".join([block.type, block.name])
         line_list.append(block_header.rjust(len(block_header) + (level * self.indent_step)))
-        line_list += self.lines
+        for line in block.lines:
+            line_list.append(line.rjust(len(line) + ((level + 1) * self.indent_step)) + " ;")
         if block.blocks:
             for block_obj in block.blocks.values():
                 block_str = self.build_block(block_obj, level + 1)
@@ -113,6 +112,8 @@ class LEFBuilder(LEFBlock):
             for layer in block.layers.values():
                 layer_str = self.build_layer(layer, level + 1)
                 line_list.append(layer_str)
+        end_str = f'END {block.name}'
+        line_list.append(end_str.rjust(len(end_str) + level * self.indent_step))
         out_str = '\n'.join(line_list)
 
 
@@ -130,7 +131,22 @@ class LEFBuilder(LEFBlock):
     def build_lef(self):
         line_list = []
         for line in self.lines:
-            self.lef += line + " ;\n"
+            if line == '\n':
+                self.lef += line
+            else:
+                self.lef += line + " ;\n"
+        for block in self.blocks.values():
+            block_str = self.build_block(block, 0)
+            self.lef += block_str
+
+        self.lef += '\n\n'
+        self.lef += 'END LIBRARY'
+
+    def write_lef(self):
+        if not self.lef:
+            self.build_lef()
+        with open(self.path + self.filename, 'w') as lef_file:
+            lef_file.write(self.lef)
 
 
 
@@ -139,8 +155,9 @@ class LEFBuilder(LEFBlock):
 
 class BBoxLEFBuilder(LEFBuilder):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, phy_design, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.make_lef_dict(phy_design)
 
     def make_lef_dict(self, phy_design: PHYDesign):
         pins = phy_design.pins
@@ -153,7 +170,8 @@ class BBoxLEFBuilder(LEFBuilder):
         sym_line = f"SYMMETRY {phy_design.specs['symmetry']}"
         site_line = f"SITE {phy_design.specs['site']}"
 
-
+        self.lines += header_lines
+        self.lines += '\n'
 
         # Macro lines
         macro_lines = [class_line, origin_line, size_line, sym_line, site_line]
@@ -163,4 +181,3 @@ class BBoxLEFBuilder(LEFBuilder):
             macro_block.add_pin(pin_name, pin)
         for bbox in bbox.values():
             macro_block.add_bbox_obs(bbox.phys_map)
-

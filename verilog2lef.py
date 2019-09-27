@@ -199,8 +199,7 @@ class PHYDesign:
 				self.n_inputs += (direction == 'input') * (pin_info['bus_max'] + 1)
 				self.n_outputs += (direction == 'output') * (pin_info['bus_max'] + 1)
 				for pin in range(pin_info['bus_max'] + 1):
-					self.pins[pin_name + '_' + str(pin)] = PHYPortPin(pin_info, layer, side, round(x_width, 3),
-																	  round(y_width, 3),
+					self.pins[pin_name + '[' + str(pin) + ']'] = PHYPortPin(pin_info, layer, side, round(x_width,3), round(y_width,3),
 																	  bus_idx=pin)
 			else:
 				self.n_inputs += direction == 'input'
@@ -220,6 +219,8 @@ class BBoxPHY(PHYDesign):
 		super().__init__(verilog_module, techfile, spec_dict)
 
 		self.add_pin_objects()
+		self.define_design_boundaries()
+		self.build_design_repr()
 
 	def define_design_boundaries(self):
 		if self.x_width:
