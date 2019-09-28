@@ -46,7 +46,7 @@ class LEFBlock:
 
 class LEFPin(LEFBlock):
     def __init__(self, pin_name, pin_obj):
-        super().__init__('PIN', pin_name, [])
+        super().__init__('PIN', pin_obj.name, [])
         self.lines.append(f"DIRECTION {pin_obj.direction.upper()}")
         self.lines.append(f"USE SIGNAL")
 

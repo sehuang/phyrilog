@@ -89,7 +89,7 @@ class GDSDesign:
 				for layer, coord_list in phy_obj.phys_map.items():
 					for coord in coord_list:
 						for purpose in phy_obj.purpose:
-							if purpose in ['drawing', 'pin']:
+							if purpose in ['drawing', 'pin', 'blockage']:
 								polygons.append(self.gds_builder.make_polygon(coord, layer, purpose))
 							elif purpose == 'label':
 								polygons.append(self.gds_builder.make_label(coord, layer, phy_obj))

@@ -1,6 +1,19 @@
 import json
 import numpy as np
 
+class Rectangle:
+	"""Represents a physical rectangle"""
+	def __init__(self, layer, left_x, bot_y, right_x, top_y, purpose = 'drawing'):
+		self.layer = layer
+		self.coords = [left_x, bot_y, right_x, top_y]
+		self.purpose = purpose
+
+class Label:
+	def __init__(self, text, layer, show=True):
+		self.text = text
+		self.layer = layer
+		self.show = show
+
 class PHYObject:
 	def __init__(self, name):
 		self.name = name
@@ -33,8 +46,9 @@ class PHYPortPin(PHYObject):
 		self.y_width = y_width
 		self.center = center
 		# self.is_bus = pin_dict.get("is_bus", False)
-		if bus_idx:
+		if isinstance(bus_idx, int):
 			self.bus_idx = bus_idx
+			self.name = self.name + f'[{self.bus_idx}]'
 		self.block_structure = {}
 
 	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0):
@@ -298,7 +312,7 @@ class BBoxPHY(PHYDesign):
 				else:
 					start_corner[0] = round(pin.center - pin_width / 2, 3)
 			pin.add_rect(layer, start_corner[0], start_corner[1])
-			if layer == 'h_layer':
+			if orientation == 'horizontal':
 				start_corner[1] = round(start_corner[1] + pin_width + pin_pitch, 3)
 			else:
 				start_corner[0] = round(start_corner[0] + pin_width + pin_pitch, 3)
@@ -341,7 +355,7 @@ class BBoxPHY(PHYDesign):
 		self.polygons['bboxes'] = self.bboxes
 
 		for side in self.pin_sides_dict.keys():
-			orientation = 'horizontal' if side == 'left' or side == 'right' else 'vertical'
+			orientation = 'horizontal' if side in ['left', 'right'] else 'vertical'
 			self.place_pins(self.pin_place_start_corners[side], self.pin_sides_dict[side], orientation)
 #
 # for pin in self.pin_sides_dict['left']:
