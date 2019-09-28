@@ -1,9 +1,12 @@
 xwidth: "width of design"
 ywidth: "height of design"
+units: "units for GDS"
+precision: "grid precision for GDS"
 aspect_ratio: "desired aspect ratio given 1 or fewer width specs. Defining both xwidth and ywidth overrides this parameter"
 input_side: "define side to put all input pins on. Default left side"
 output_side: "define side to put all output pins on. Default right side"
 pin_margin: "Should the design be flush with the first/last pins on each side (False) or not (True)?"
+exclude_layers: "List of layers to exclude from BBOX"
 pins:
   h_layer: "horizontal metal layer for pins"
   v_layer: "vertical metal layer for pins"
