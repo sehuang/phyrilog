@@ -10,10 +10,10 @@ class PHYBBox(PHYObject):
             self.add_rect(layer, left_x, bot_y, left_x + x_width, bot_y + y_width)
 
     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0):
-        if layer in self.phys_map.keys():
-            self.phys_map[layer].append = [round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]
+        if layer in self.phys_objs.keys():
+            self.phys_objs[layer].append = [round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]
         else:
-            self.phys_map[layer] = [[round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]]
+            self.phys_objs[layer] = [[round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]]
 
 class BBoxPHY(PHYDesign):
     """Black-boxed LEF object. This class describes LEF stuff"""
