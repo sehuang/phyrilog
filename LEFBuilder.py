@@ -39,7 +39,7 @@ class LEFBlock:
 	def add_pgpin(self, pg, pin_obj):
 		new_pgpin = LEFPGPin(pin_obj.name, pin_obj, pg)
 		self.blocks[pin_obj.name] = new_pgpin
-		new_pgpin.add_port(pin_obj.phys_map)
+		new_pgpin.add_port(pin_obj.phys_objs)
 
 
 
@@ -62,15 +62,15 @@ class LEFPin(LEFBlock):
 				new_port.add_layer(rectangle.layer, rectangle.coords)
 
 class LEFPGPin(LEFPin):
-    def __init__(self, pin_name, pin_obj, pg):
-        super().__init__(pin_obj.name, pin_obj)
-        self.lines = []
-        self.lines.append(f"DIRECTION {pin_obj.direction.upper()}")
-        if pg == 'pwr':
-            pg = 'POWER'
-        elif pg == 'gnd':
-            pg = 'GROUND'
-        self.lines.append(f"USE {pg.upper()}")
+	def __init__(self, pin_name, pin_obj, pg):
+		super().__init__(pin_obj.name, pin_obj)
+		self.lines = []
+		self.lines.append(f"DIRECTION {pin_obj.direction.upper()}")
+		if pg == 'pwr':
+			pg = 'POWER'
+		elif pg == 'gnd':
+			pg = 'GROUND'
+		self.lines.append(f"USE {pg.upper()}")
 
 class LEFLayer(LEFBlock):
 	def __init__(self, layer):
@@ -176,17 +176,17 @@ class BBoxLEFBuilder(LEFBuilder):
 		super().__init__(*args, **kwargs)
 		self.make_lef_dict(phy_design)
 
-    def make_lef_dict(self, phy_design: PHYDesign):
-        pins = phy_design.pins
-        bbox = phy_design.bboxes
-        pg_pins = phy_design.pg_pins
-        name = phy_design.name
-        class_line = "CLASS CORE"
-        header_lines = self.add_lef_header(version=5.6)
-        origin_line = f"ORIGIN {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
-        size_line = f"SIZE {phy_design.x_width} BY {phy_design.y_width}"
-        sym_line = f"SYMMETRY {phy_design.specs['symmetry']}"
-        site_line = f"SITE {phy_design.specs['site']}"
+	def make_lef_dict(self, phy_design: PHYDesign):
+		pins = phy_design.pins
+		bbox = phy_design.bboxes
+		pg_pins = phy_design.pg_pins
+		name = phy_design.name
+		class_line = "CLASS CORE"
+		header_lines = self.add_lef_header(version=5.6)
+		origin_line = f"ORIGIN {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
+		size_line = f"SIZE {phy_design.x_width} BY {phy_design.y_width}"
+		sym_line = f"SYMMETRY {phy_design.specs['symmetry']}"
+		site_line = f"SITE {phy_design.specs['site']}"
 
 		self.lines += header_lines
 		self.lines += '\n'
@@ -194,10 +194,10 @@ class BBoxLEFBuilder(LEFBuilder):
 		# Macro lines
 		macro_lines = [class_line, origin_line, size_line, sym_line, site_line]
 
-        macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
-        for pg, pin in pg_pins.items():
-            macro_block.add_pgpin(pg, pin)
-        for pin_name, pin in pins.items():
-            macro_block.add_pin(pin_name, pin)
-        for bbox in bbox.values():
-            macro_block.add_bbox_obs(bbox.phys_map)
+		macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
+		for pg, pin in pg_pins.items():
+			macro_block.add_pgpin(pg, pin)
+		for pin_name, pin in pins.items():
+			macro_block.add_pin(pin_name, pin)
+		for bbox in bbox.values():
+			macro_block.add_bbox_obs(bbox.phys_objs)

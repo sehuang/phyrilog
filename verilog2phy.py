@@ -109,7 +109,6 @@ class PHYDesign:
 						 'precision': 1e-9,
 						 'input_side': 'left',
 						 'output_side': 'right',
-						 'aspect_ratio': [1, 1],
 						 'pin_margin': False,
 						 'symmetry': 'X Y',
 						 'site': 'core',
@@ -130,7 +129,7 @@ class PHYDesign:
 			self.specs.update(spec_dict)
 		self.x_width = self.specs.get('xwidth', None)
 		self.y_width = self.specs.get('ywidth', None)
-		self.aspect_ratio = self.specs.get('aspect_ratio', None)
+		# self.aspect_ratio = self.specs_dict.get('aspect_ratio', None)
 		self.polygons = {'pins': self.pins,
 						 'pg_pins': self.pg_pins}
 
@@ -175,12 +174,12 @@ class PHYDesign:
 							 pwr_pin_specs['side'],
 							 round(pwr_pin_specs['xwidth'], 3),
 							 round(pwr_pin_specs['ywidth'], 3),
-							 center=pg_pin_specs['pwr_pin']['center'])
+							 center=pg_pin_specs['pwr_pin'].get('center', None))
 		gnd_pin = PHYPortPin(gnd_pin_dict, pg_pin_specs['gnd_pin']['layer'],
 							 pg_pin_specs['gnd_pin']['side'],
 							 round(pg_pin_specs['gnd_pin']['xwidth'], 3),
 							 round(pg_pin_specs['gnd_pin']['ywidth'], 3),
-							 center=pg_pin_specs['gnd_pin']['center'])
+							 center=pg_pin_specs['gnd_pin'].get('center', None))
 		pwr_pin.type = 'POWER'
 		gnd_pin.type = 'GROUND'
 		self.pg_pins['pwr'] = pwr_pin
@@ -280,38 +279,49 @@ class BBoxPHY(PHYDesign):
 			self.pin_sides_dict[pin.side].append(pin)
 		for pg_pin in self.pg_pins.values():
 			self.pin_sides_dict[pg_pin.side].append(pg_pin)
-		min_y_pins = max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right']))
-		min_x_pins = max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom']))
+		min_h_pins = max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right']))
+		min_v_pins = max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom']))
 
 		h_pin_width = self.metals[self.specs['pins']['h_layer']]['min_width']
 		v_pin_width = self.metals[self.specs['pins']['v_layer']]['min_width']
 		h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch']
 		v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch']
-		min_y_dim = (min_y_pins * h_pin_width) + ((min_y_pins - 1) * h_pin_pitch) if min_y_pins > 0 else (
-				min_y_pins * h_pin_width)
-		min_x_dim = (min_x_pins * v_pin_width) + ((min_x_pins - 1) * v_pin_pitch) if min_x_pins > 0 else (
-				min_x_pins * v_pin_width)
+		# min_y_dim = (min_h_pins * h_pin_width) + ((min_h_pins - 1) * h_pin_pitch) if min_h_pins > 0 else (
+		# 		min_h_pins * h_pin_width)
+		min_y_dim = max(sum([pin.y_width for pin in self.pin_sides_dict['left']]),
+						sum([pin.y_width for pin in self.pin_sides_dict['right']])) + ((min_h_pins - 1) * h_pin_pitch)
+		# min_x_dim = (min_v_pins * v_pin_width) + ((min_v_pins - 1) * v_pin_pitch) if min_v_pins > 0 else (
+		# 		min_v_pins * v_pin_width)
+		min_x_dim = max(sum([pin.x_width for pin in self.pin_sides_dict['top']]),
+						sum([pin.x_width for pin in self.pin_sides_dict['bottom']])) + ((min_v_pins - 1) * v_pin_pitch)
 
-		for x_side in [self.pin_sides_dict['left'], self.pin_sides_dict['right']]:
-			for pin in x_side:
-				if min_y_dim < pin.y_width:
-					min_y_dim = pin.y_width
-		for y_side in [self.pin_sides_dict['top'], self.pin_sides_dict['bottom']]:
-			for pin in y_side:
-				if min_x_dim < pin.x_width:
-					min_x_dim = pin.x_width
+		# max_hpin_size = 0
+		# max_vpin_size = 0
+		# for x_side in [self.pin_sides_dict['left'], self.pin_sides_dict['right']]:
+		# 	for pin in x_side:
+		# 		if max_hpin_size < pin.x_width:
+		# 			min_y_dim = pin.x_width
+		# for y_side in [self.pin_sides_dict['top'], self.pin_sides_dict['bottom']]:
+		# 	for pin in y_side:
+		# 		if min_x_dim < pin.y_width:
+		# 			min_x_dim = pin.y_width
 
 		if not x_width:
 			x_width = min_x_dim
 		if not y_width:
 			y_width = min_y_dim
+		if self.specs.get('aspect_ratio', None):
+			if y_width * self.specs['aspect_ratio'][1] > x_width:
+				x_width = y_width * self.specs['aspect_ratio'][1]
+			elif x_width * self.specs['aspect_ratio'][0] > y_width:
+				y_width = x_width * self.specs['aspect_ratio'][0]
 		if x_width == 0 and y_width > 0:
 			x_width = y_width * self.specs['aspect_ratio'][1]
 		if y_width == 0 and x_width > 0:
 			y_width = x_width * self.specs['aspect_ratio'][0]
 		if self.specs['pin_margin']:
-			x_width = x_width + v_pin_pitch
-			y_width = y_width + h_pin_pitch
+			x_width = x_width + (2 * v_pin_pitch)
+			y_width = y_width + (2 * h_pin_pitch)
 		self.bbox_x_width = round(x_width, 3)
 		self.bbox_y_width = round(y_width, 3)
 		self.bbox_left_margin = round(max([pin.x_width for pin in self.pin_sides_dict['left']], default=0), 3)
@@ -353,17 +363,19 @@ class BBoxPHY(PHYDesign):
 			y_corr = 0
 
 		self.pin_place_start_corners = {}
-		self.pin_place_start_corners['left'] = [bbox_bot_left_corner[0],
+		self.pin_place_start_corners['left'] = [0,
 												round(
-													np.ceil((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch,
+													np.ceil((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_width,
 													3)]
 		self.pin_place_start_corners['right'] = [bbox_top_right_corner[0],
 												 round(
-													 np.ceil((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch,
+													 np.ceil((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_width,
 													 3)]
-		self.pin_place_start_corners['bottom'] = [round(np.ceil((bbox_bot_left_corner[0] + x_corr) / v_pin_width), 3), 0]
-		self.pin_place_start_corners['top'] = [round(np.ceil((bbox_top_right_corner[0] + x_corr) / v_pin_width), 3),
-											   bbox_top_right_corner[1]]
+		self.pin_place_start_corners['bottom'] = \
+			[round(np.ceil((self.bbox_left_margin + x_corr) / v_pin_width) * v_pin_width, 3), 0]
+		self.pin_place_start_corners['top'] = \
+			[round(np.ceil((self.bbox_left_margin + x_corr) / v_pin_width) * v_pin_width, 3),
+			 bbox_top_right_corner[1]]
 
 		bbox_layers = []
 		for layer in self.metals:

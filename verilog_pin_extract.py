@@ -45,6 +45,7 @@ class VerilogModule:
 		for line in line_list:
 			if checkstr in line:
 				return line_list.index(line)
+		raise NameError(f"Could not find module name {top} in file.")
 
 	def _get_pin_def_list(self, line_list, top_line_no):
 		"""Returns list of strings containing the module and port definitions."""
