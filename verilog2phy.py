@@ -3,28 +3,35 @@ import numpy as np
 
 class Rectangle:
 	"""Represents a physical rectangle"""
-	def __init__(self, layer, left_x, bot_y, right_x, top_y, purpose = 'drawing'):
+	def __init__(self, layer, left_x, bot_y, right_x, top_y, purpose=['drawing']):
 		self.layer = layer
-		self.coords = [left_x, bot_y, right_x, top_y]
+		self.coords = [round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]
 		self.purpose = purpose
 
+	def scale(self, scale_factor):
+		coord_arr = np.asarray(self.coords) * scale_factor
+		self.coords = coord_arr.tolist()
+
 class Label:
-	def __init__(self, text, layer, show=True):
+	def __init__(self, text, layer, position, show=True):
 		self.text = text
+		self.purpose = ['label']
 		self.layer = layer
+		self.coords = [round(position[0], 3), round(position[1], 3)]
 		self.show = show
+
+	def scale(self, scale_factor):
+		coord_arr = np.asarray(self.coords) * scale_factor
+		self.coords = coord_arr.tolist()
 
 class PHYObject:
 	def __init__(self, name):
 		self.name = name
 		self.purpose = None
-		self.phys_map = {}
+		self.phys_objs = []
 
-	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0):
-		if layer in self.phys_map.keys():
-			self.phys_map[layer].append = [round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]
-		else:
-			self.phys_map[layer] = [[round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]]
+	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['drawing']):
+		self.phys_objs.append(Rectangle(layer, left_x, bot_y, right_x, top_y, purpose))
 
 	# self.phys_map[layer]['shape'] = 'RECT'
 
@@ -39,7 +46,6 @@ class PHYPortPin(PHYObject):
 		self.pin_dict = pin_dict
 		self.name = pin_dict['name']
 		self.direction = pin_dict['direction']
-		self.purpose = ['pin', 'drawing']
 		self.layer = layer
 		self.side = side
 		self.x_width = x_width
@@ -51,14 +57,18 @@ class PHYPortPin(PHYObject):
 			self.name = self.name + f'[{self.bus_idx}]'
 		self.block_structure = {}
 
-	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0):
-		if layer in self.phys_map.keys():
-			self.phys_map[layer]['coord'].append = [round(left_x, 3), round(bot_y, 3), round(left_x + self.x_width, 3),
-													round(bot_y + self.y_width, 3)]
-		else:
-			self.phys_map[layer] = [[round(left_x, 3), round(bot_y, 3), round(left_x + self.x_width, 3),
-									 round(bot_y + self.y_width, 3)]]
+	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['drawing', 'pin']):
+		right_x = left_x + self.x_width
+		top_y = bot_y + self.y_width
+		self.phys_objs.append(Rectangle(layer, left_x, bot_y, right_x, top_y, purpose))
+		self.add_label(layer, ((right_x + left_x) / 2, (top_y + bot_y) / 2))
 
+	def add_label(self, layer, position):
+		self.phys_objs.append(Label(self.name, layer, position, show=True))
+
+	def scale(self, scale_factor):
+		for rect in self.phys_objs:
+			rect.scale(scale_factor)
 
 class PHYBBox(PHYObject):
 	def __init__(self, layers, left_x, bot_y, x_width, y_width):
@@ -67,12 +77,12 @@ class PHYBBox(PHYObject):
 		for layer in layers:
 			self.add_rect(layer, left_x, bot_y, left_x + x_width, bot_y + y_width)
 
-	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0):
-		if layer in self.phys_map.keys():
-			self.phys_map[layer].append = [round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]
-		else:
-			self.phys_map[layer] = [[round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]]
+	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
+		self.phys_objs.append(Rectangle(layer, left_x, bot_y, right_x, top_y, purpose))
 
+	def scale(self, scale_factor):
+		for rect in self.phys_objs:
+			rect.scale(scale_factor)
 
 class PHYDesign:
 	"""Python representation of a PHY Design. Right now this just consumes VerilogModules"""
@@ -93,6 +103,7 @@ class PHYDesign:
 		self.spec_dict = spec_dict
 		self.pins = {}
 		self.pg_pins = {}
+		self.phys_objs = []
 		self.defaults = {'origin': [0, 0],
 						 'units': 1e-6,
 						 'precision': 1e-9,
@@ -174,6 +185,8 @@ class PHYDesign:
 		gnd_pin.type = 'GROUND'
 		self.pg_pins['pwr'] = pwr_pin
 		self.pg_pins['gnd'] = gnd_pin
+		self.phys_objs.append(pwr_pin)
+		self.phys_objs.append(gnd_pin)
 
 	def add_pin_objects(self):
 		self.n_inputs = 0
@@ -219,16 +232,14 @@ class PHYDesign:
 				self.n_inputs += direction == 'input'
 				self.n_outputs += direction == 'output'
 				self.pins[pin_name] = PHYPortPin(pin_info, layer, side, round(x_width, 3), round(y_width, 3))
+		self.phys_objs += list(self.pins.values())
 
 	def define_design_boundaries(self):
 		pass
 
 	def scale(self, scale_factor = 1):
-		for objects in self.polygons.values():
-			for obj_name, obj in objects.items():
-				for layer, polyg_list in obj.phys_map.items():
-					polyg_array = np.asarray(polyg_list) * scale_factor
-					obj.phys_map[layer] = polyg_array.tolist()
+		for obj in self.phys_objs:
+			obj.scale(scale_factor)
 		self.x_width = round(self.x_width * scale_factor, 3)
 		self.y_width = round(self.y_width * scale_factor, 3)
 
@@ -280,6 +291,15 @@ class BBoxPHY(PHYDesign):
 				min_y_pins * h_pin_width)
 		min_x_dim = (min_x_pins * v_pin_width) + ((min_x_pins - 1) * v_pin_pitch) if min_x_pins > 0 else (
 				min_x_pins * v_pin_width)
+
+		for x_side in [self.pin_sides_dict['left'], self.pin_sides_dict['right']]:
+			for pin in x_side:
+				if min_y_dim < pin.y_width:
+					min_y_dim = pin.y_width
+		for y_side in [self.pin_sides_dict['top'], self.pin_sides_dict['bottom']]:
+			for pin in y_side:
+				if min_x_dim < pin.x_width:
+					min_x_dim = pin.x_width
 
 		if not x_width:
 			x_width = min_x_dim
@@ -335,15 +355,15 @@ class BBoxPHY(PHYDesign):
 		self.pin_place_start_corners = {}
 		self.pin_place_start_corners['left'] = [bbox_bot_left_corner[0],
 												round(
-													round((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch,
+													np.ceil((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch,
 													3)]
 		self.pin_place_start_corners['right'] = [bbox_top_right_corner[0],
 												 round(
-													 round((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch,
+													 np.ceil((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_pitch,
 													 3)]
-		self.pin_place_start_corners['bottom'] = [round(round((bbox_bot_left_corner[0] + x_corr) / v_pin_width), 3), 0]
-		self.pin_place_start_corners['top'] = [round(round((bbox_top_right_corner[0] + x_corr) / v_pin_width), 3),
-											   self.y_width]
+		self.pin_place_start_corners['bottom'] = [round(np.ceil((bbox_bot_left_corner[0] + x_corr) / v_pin_width), 3), 0]
+		self.pin_place_start_corners['top'] = [round(np.ceil((bbox_top_right_corner[0] + x_corr) / v_pin_width), 3),
+											   bbox_top_right_corner[1]]
 
 		bbox_layers = []
 		for layer in self.metals:
@@ -353,6 +373,7 @@ class BBoxPHY(PHYDesign):
 			'BBOX': PHYBBox(bbox_layers, bbox_bot_left_corner[0], bbox_bot_left_corner[1], self.bbox_x_width,
 							self.bbox_y_width)}
 		self.polygons['bboxes'] = self.bboxes
+		self.phys_objs += list(self.bboxes.values())
 
 		for side in self.pin_sides_dict.keys():
 			orientation = 'horizontal' if side in ['left', 'right'] else 'vertical'

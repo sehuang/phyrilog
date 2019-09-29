@@ -64,7 +64,7 @@ if __name__ == '__main__':
 						 'center': 1.2
 					 },
 				 },
-				 'exclude_layers': ['M5']}
+				 'exclude_layers': ['Pad']}
 	test_v1lef(spec_dict)
 	test_v1gds(spec_dict)
 	# bbox = test_v2lef(spec_dict)

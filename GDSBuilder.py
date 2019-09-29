@@ -39,10 +39,27 @@ class GDSBuilder:
 		self.gdsii = gds_library
 
 	def get_layer_dtype_tuple(self, layer, purpose = None):
+		if not layer:
+			raise ValueError("Must define layer stream number.")
 		if purpose:
 			return self.layermap.map[layer][purpose]
 		else:
-			return self.layermap.map[layer].values()[0][0] # this is a hack to get the layer number only. Not sure if needed
+			return list(self.layermap.map[layer].values())[0][0] # this is a hack to get the layer number only. Not sure if needed
+
+	def make_shape_from_phy(self, phy_obj):
+		layer = phy_obj.layer
+		coords = phy_obj.coords
+		shape = []
+		for purpose in phy_obj.purpose:
+			map_tuple = self.get_layer_dtype_tuple(layer, purpose)
+			if purpose in ['drawing', 'pin', 'blockage']:
+				shape.append(self.make_polygon(coords, tuple=map_tuple))
+			elif purpose in ['label']:
+				shape.append(self.make_label(coords, phy_obj.text, layer))
+			else:
+				pass
+
+		return shape
 
 	def make_polygon(self, coords, layer=None, purpose=None, tuple=None):
 		if tuple:
@@ -54,12 +71,12 @@ class GDSBuilder:
 		corner2 = (coords[2], coords[3])
 		return gp.Rectangle(corner1, corner2, layer_num, datatype)
 
-	def make_label(self, coords, pin, layer):
+	def make_label(self, coords, text, layer):
 		purpose = 'label'
-		centroid = [round(((coords[0] + coords[2]) / 2), 3), round((coords[1] + coords[3]) / 2, 3)]
-		name = pin.name
-		return gp.Label(name, centroid)
-
+		layer_num = self.get_layer_dtype_tuple(layer)
+		# centroid = [round(((coords[0] + coords[2]) / 2), 3), round((coords[1] + coords[3]) / 2, 3)]
+		name = text
+		return gp.Label(text, coords, layer=layer_num)
 
 	def scale_all(self, cell, scale_factor):
 		for polygon in cell.polygons:
@@ -84,15 +101,11 @@ class GDSDesign:
 			cell = self.top_cell
 		phy = self.phy_design
 		polygons = []
-		for obj_type in phy.polygons.values():
-			for phy_obj in obj_type.values():
-				for layer, coord_list in phy_obj.phys_map.items():
-					for coord in coord_list:
-						for purpose in phy_obj.purpose:
-							if purpose in ['drawing', 'pin', 'blockage']:
-								polygons.append(self.gds_builder.make_polygon(coord, layer, purpose))
-							elif purpose == 'label':
-								polygons.append(self.gds_builder.make_label(coord, layer, phy_obj))
+
+		for phy_obj in phy.phys_objs:
+			for obj in phy_obj.phys_objs:
+				polygons += self.gds_builder.make_shape_from_phy(obj)
+
 		cell.add(polygons)
 
 	def finish_gdsii(self, scale_factor = 1):
