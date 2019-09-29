@@ -30,14 +30,14 @@ def test_v2lef(spec_dict):
 	return bbox
 
 def test_v1lef(spec_dict):
-	bbox = BBoxPHY(test2_mod, test_techfile, spec_dict=spec_dict)
+	bbox = BBoxPHY(test_mod, test_techfile, spec_dict=spec_dict)
 	bbox.scale(4)
 	bbox_lef = BBoxLEFBuilder(bbox, filename='Memory141.lef', indent_char_width=2)
 	pprint.pprint(bbox_lef.blocks)
 	bbox_lef.write_lef()
 
 def test_v1gds(spec_dict):
-	bbox = BBoxPHY(test2_mod, test_techfile, spec_dict=spec_dict)
+	bbox = BBoxPHY(test_mod, test_techfile, spec_dict=spec_dict)
 	bbox.scale(4)
 	bbox_gds = GDSDesign(bbox, layermap_file=asap7_layermapfile)
 	bbox_gds.add_polygons()

@@ -32,6 +32,11 @@ class LEFBlock:
         self.blocks[name] = new_pin
         new_pin.add_port(pin_obj.phys_map)
 
+    def add_pgpin(self, pg, pin_obj):
+        new_pgpin = LEFPGPin(pin_obj.name, pin_obj, pg)
+        self.blocks[pin_obj.name] = new_pgpin
+        new_pgpin.add_port(pin_obj.phys_map)
+
     def add_bbox_obs(self, bbox_phys_map):
         new_obs = self.add_block('OBS', '', [])
         for layer_name, layer_list in bbox_phys_map.items():
@@ -54,6 +59,17 @@ class LEFPin(LEFBlock):
         new_port = self.add_block('PORT', '', [])
         for layer_name, layer_list in pin_phys_map.items():
             new_port.add_layer(layer_name, layer_list)
+
+class LEFPGPin(LEFPin):
+    def __init__(self, pin_name, pin_obj, pg):
+        super().__init__(pin_obj.name, pin_obj)
+        self.lines = []
+        self.lines.append(f"DIRECTION {pin_obj.direction.upper()}")
+        if pg == 'pwr':
+            pg = 'POWER'
+        elif pg == 'gnd':
+            pg = 'GROUND'
+        self.lines.append(f"USE {pg.upper()}")
 
 class LEFLayer(LEFBlock):
     def __init__(self, layer):
@@ -162,6 +178,7 @@ class BBoxLEFBuilder(LEFBuilder):
     def make_lef_dict(self, phy_design: PHYDesign):
         pins = phy_design.pins
         bbox = phy_design.bboxes
+        pg_pins = phy_design.pg_pins
         name = phy_design.name
         class_line = "CLASS CORE"
         header_lines = self.add_lef_header(version=5.6)
@@ -177,6 +194,8 @@ class BBoxLEFBuilder(LEFBuilder):
         macro_lines = [class_line, origin_line, size_line, sym_line, site_line]
 
         macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
+        for pg, pin in pg_pins.items():
+            macro_block.add_pgpin(pg, pin)
         for pin_name, pin in pins.items():
             macro_block.add_pin(pin_name, pin)
         for bbox in bbox.values():
