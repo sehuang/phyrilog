@@ -1,5 +1,6 @@
 import re
 import operator
+import ast
 
 class VerilogModule:
 	"""Python Object representing a Verilog Module. This will just contain Pins"""
@@ -98,30 +99,33 @@ class VerilogModule:
 		"""Evaluates operation for bus indices when netlist uses parameters. This method
 		recurs until it runs out of string to try evaluating"""
 
-		left_exp = re.findall(r"[\S]+(?=(?:[\s]*[+\-*/]))", string)
-		if len(left_exp) == 0:
-			raise KeyError(f"Parameter {string} not defined.")
-		left_exp = re.findall(r"[^`]", left_exp[0]) 			# get rid of tick
-		right_exp = re.findall(r"(?<=[+\-*/])[\s]*[\S]+", string)
-		if len(right_exp) == 0:
-			raise KeyError(f"Parameter {string} not defined.")
-		right_exp = re.findall(r"[\S]+", right_exp[0])
-		operator = re.findall(r"[+\-*/]", string)[0]
-		if len(left_exp) == 0 or len(right_exp) == 0:
-			raise KeyError(f"Parameter {string} not defined.")
-		else:
-			left_exp = left_exp[0]
-			right_exp = right_exp[0]
-		try:
-			left_exp = self.params[left_exp] if not left_exp.isdigit() else left_exp
-		except KeyError: # This might itself be another operation!
-			left_exp = self._eval_param_op(left_exp)
-		try:
-			right_exp = self.params[right_exp] if not right_exp.isdigit() else right_exp
-		except KeyError: # This might itself be another operation!
-			right_exp = self._eval_param_op(right_exp)
-		index = self.op_lut[operator](int(left_exp), int(right_exp))
-		return index
+		clean_exp = re.findall(r"[^`]", string)[0]
+
+
+		# left_exp = re.findall(r"[\S]+(?=(?:[\s]*[+\-*/]))", string)
+		# if len(left_exp) == 0:
+		# 	raise KeyError(f"Parameter {string} not defined.")
+		# left_exp = re.findall(r"[^`]", left_exp[0]) 			# get rid of tick
+		# right_exp = re.findall(r"(?<=[+\-*/])[\s]*[\S]+", string)
+		# if len(right_exp) == 0:
+		# 	raise KeyError(f"Parameter {string} not defined.")
+		# right_exp = re.findall(r"[\S]+", right_exp[0])
+		# operator = re.findall(r"[+\-*/]", string)[0]
+		# if len(left_exp) == 0 or len(right_exp) == 0:
+		# 	raise KeyError(f"Parameter {string} not defined.")
+		# else:
+		# 	left_exp = left_exp[0]
+		# 	right_exp = right_exp[0]
+		# try:
+		# 	left_exp = self.params[left_exp] if not left_exp.isdigit() else left_exp
+		# except KeyError: # This might itself be another operation!
+		# 	left_exp = self._eval_param_op(left_exp)
+		# try:
+		# 	right_exp = self.params[right_exp] if not right_exp.isdigit() else right_exp
+		# except KeyError: # This might itself be another operation!
+		# 	right_exp = self._eval_param_op(right_exp)
+		# index = self.op_lut[operator](int(left_exp), int(right_exp))
+		# return index
 
 
 	def _bus_parser(self, bus_idx):
