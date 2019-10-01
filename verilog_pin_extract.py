@@ -98,8 +98,14 @@ class VerilogModule:
 		"""Evaluates operation for bus indices when netlist uses parameters. This method
 		recurs until it runs out of string to try evaluating"""
 
-		left_exp = re.findall(r"[\w]+(?=[+\-*/])", string)
-		right_exp = re.findall(r"(?<=[+\-*/])[\w]+", string)
+		left_exp = re.findall(r"[\S]+(?=(?:[\s]*[+\-*/]))", string)
+		if len(left_exp) == 0:
+			raise KeyError(f"Parameter {string} not defined.")
+		left_exp = re.findall(r"[^`]", left_exp[0]) 			# get rid of tick
+		right_exp = re.findall(r"(?<=[+\-*/])[\s]*[\S]+", string)
+		if len(right_exp) == 0:
+			raise KeyError(f"Parameter {string} not defined.")
+		right_exp = re.findall(r"[\S]+", right_exp[0])
 		operator = re.findall(r"[+\-*/]", string)[0]
 		if len(left_exp) == 0 or len(right_exp) == 0:
 			raise KeyError(f"Parameter {string} not defined.")
