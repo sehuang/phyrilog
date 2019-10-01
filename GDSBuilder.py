@@ -92,8 +92,9 @@ class GDSDesign:
 		self.gdsii = gp.GdsLibrary(phy_design.name, unit=phy_design.specs['units'],
 								   precision=phy_design.specs['precision'])
 		self.gds_builder = GDSBuilder(self.gdsii, mapfile=layermap_file)
-		self.top_cell = gp.Cell(phy_design.name)
-		self.gdsii.add(self.top_cell)
+		self.top_cell = gp.Cell(phy_design.name, exclude_from_current=True)
+		# Fixme: Figure out why GDSLibrary is remembering cells between instances
+		self.gdsii.add(self.top_cell, overwrite_duplicate=True)
 
 
 	def add_polygons(self, cell = None):
