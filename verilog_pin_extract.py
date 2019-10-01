@@ -45,6 +45,7 @@ class VerilogModule:
 		for line in line_list:
 			if checkstr in line:
 				return line_list.index(line)
+		raise NameError(f"Could not find module name {top} in file.")
 
 	def _get_pin_def_list(self, line_list, top_line_no):
 		"""Returns list of strings containing the module and port definitions."""
@@ -72,15 +73,15 @@ class VerilogModule:
 		"""Extracts parameter definitions from string and compiles parameter dictionary.
 		Also extracts constants from Verilog header files."""
 
-		params_str = re.findall(r"(?<=#\().*(?=\)\()", pins_str)
+		params_str = re.findall(r"(?<=#\().*(?=\)[\s]*\()", pins_str)
 		if len(params_str) > 0:
 			params_str = params_str[0]
 			params_list = params_str.split(',')
 			for param in params_list:
 				parts = param.split()
 				param_name = parts[1]
-				param_val = re.findall(r'\d',parts[-1])[0]
-				self.params[param_name] = param_val
+				param_val = re.findall(r'\d+',parts[-1])[0]
+				self.params[param_name] = int(param_val)
 		else:
 			params_str = ""
 		if self.constfile_list:
