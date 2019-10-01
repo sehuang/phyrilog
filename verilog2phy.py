@@ -149,19 +149,27 @@ class PHYDesign:
 		gnd_pin_specs = self.specs['pg_pins']['gnd_pin']
 
 
-		if not pwr_pin_specs.get('xwidth', None):
-			if pwr_pin_specs['side'] == 'top' or pwr_pin_specs['side'] == 'bottom':
+
+		if pwr_pin_specs['side'] == 'top' or pwr_pin_specs['side'] == 'bottom':
+			if not pwr_pin_specs.get('xwidth', None):
 				pwr_pin_specs['xwidth'] = self.metals[pwr_pin_specs['layer']]['min_width']
+			if not pwr_pin_specs.get('ywidth', None):
 				pwr_pin_specs['ywidth'] = 1
-			else:
+		else:
+			if not pwr_pin_specs.get('ywidth', None):
 				pwr_pin_specs['ywidth'] = self.metals[pwr_pin_specs['layer']]['min_width']
+			if not pwr_pin_specs.get('xwidth', None):
 				pwr_pin_specs['xwidth'] = 1
-		if not gnd_pin_specs.get('xwidth', None):
-			if gnd_pin_specs['side'] == 'top' or gnd_pin_specs['side'] == 'bottom':
+
+		if gnd_pin_specs['side'] == 'top' or gnd_pin_specs['side'] == 'bottom':
+			if not gnd_pin_specs.get('xwidth', None):
 				gnd_pin_specs['xwidth'] = self.metals[gnd_pin_specs['layer']]['min_width']
+			if not gnd_pin_specs.get('ywidth', None):
 				gnd_pin_specs['ywidth'] = 1
-			else:
+		else:
+			if not gnd_pin_specs.get('ywidth', None):
 				gnd_pin_specs['ywidth'] = self.metals[gnd_pin_specs['layer']]['min_width']
+			if not gnd_pin_specs.get('xwidth', None):
 				gnd_pin_specs['xwidth'] = 1
 
 		pwr_pin_dict = {'name': power_pin_name,
@@ -311,10 +319,11 @@ class BBoxPHY(PHYDesign):
 		if not y_width:
 			y_width = min_y_dim
 		if self.specs.get('aspect_ratio', None):
-			if y_width * self.specs['aspect_ratio'][1] > x_width:
-				x_width = y_width * self.specs['aspect_ratio'][1]
-			elif x_width * self.specs['aspect_ratio'][0] > y_width:
-				y_width = x_width * self.specs['aspect_ratio'][0]
+			if not self.specs.get('xwidth', None) or not self.specs.get('ywidth', None):
+				if y_width * self.specs['aspect_ratio'][1] > min_x_dim:
+					x_width = y_width * self.specs['aspect_ratio'][1] / self.specs['aspect_ratio'][0]
+				elif x_width * self.specs['aspect_ratio'][0] > min_y_dim:
+					y_width = x_width * self.specs['aspect_ratio'][0] / self.specs['aspect_ratio'][1]
 		if x_width == 0 and y_width > 0:
 			x_width = y_width * self.specs['aspect_ratio'][1]
 		if y_width == 0 and x_width > 0:
