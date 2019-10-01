@@ -84,13 +84,11 @@ class LEFLayer(LEFBlock):
 class LEFBuilder(LEFBlock):
 	"""API for ease of building a LEF file."""
 
-	def __init__(self, filename='', path='', indent_char_width=2):
+	def __init__(self, indent_char_width=2):
 		super().__init__('top', 'top', [])
 		self.blocks = {}
 		self.lines = []
 		self.lef = ""
-		self.filename = filename
-		self.path = path
 		self.indent_step = indent_char_width
 
 	def add_lef_header(self, version=None, bus_bit_chars="[]", divider_char="/"):
@@ -159,10 +157,10 @@ class LEFBuilder(LEFBlock):
 		self.lef += '\n\n'
 		self.lef += 'END LIBRARY'
 
-	def write_lef(self):
+	def write_lef(self, filename, path='',):
 		if not self.lef:
 			self.build_lef()
-		with open(self.path + self.filename, 'w') as lef_file:
+		with open(path + filename, 'w') as lef_file:
 			lef_file.write(self.lef)
 
 
