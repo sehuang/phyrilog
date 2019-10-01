@@ -1,4 +1,4 @@
-# phyreilog
+# phyrilog
 Verilog-to-physical conversion scripts
 
 ## TODO:
