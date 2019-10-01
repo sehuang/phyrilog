@@ -175,7 +175,7 @@ class BBoxLEFBuilder(LEFBuilder):
         super().__init__(*args, **kwargs)
         self.make_lef_dict(phy_design)
 
-    def make_lef_dict(self, phy_design: PHYDesign):
+    def make_lef_dict(self, phy_design: PHYDesign, add_pg_pins=True):
         pins = phy_design.pins
         bbox = phy_design.bboxes
         pg_pins = phy_design.pg_pins
@@ -194,8 +194,9 @@ class BBoxLEFBuilder(LEFBuilder):
         macro_lines = [class_line, origin_line, size_line, sym_line, site_line]
 
         macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
-        for pg, pin in pg_pins.items():
-            macro_block.add_pgpin(pg, pin)
+        if add_pg_pins:
+            for pg, pin in pg_pins.items():
+                macro_block.add_pgpin(pg, pin)
         for pin_name, pin in pins.items():
             macro_block.add_pin(pin_name, pin)
         for bbox in bbox.values():
