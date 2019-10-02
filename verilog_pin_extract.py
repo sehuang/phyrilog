@@ -183,5 +183,3 @@ class VerilogModule:
 
 			self.pins[name] = pin_info
 
-	def _extended_port_parser(self, pin_def_list):
-
