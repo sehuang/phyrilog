@@ -29,7 +29,7 @@ class VerilogModule:
 
 		top_line_no = self._get_top_module_line_no(line_list, top)
 		pin_def_list = self._get_pin_def_list(line_list, top_line_no)
-		self._parse_pin_def_list(pin_def_list)
+		self._parse_pin_def_list(pin_def_list, top_line_no, line_list)
 		self.power_pins = {"power_pin": VDD,
 						   "ground_pin": VSS}
 		for pin in self.pins.values():
@@ -54,6 +54,8 @@ class VerilogModule:
 			if ");" in line:
 				end_idx = line_list[top_line_no:].index(line)
 				break
+		if end_idx == 0:
+			end_idx += 1 # THIS IS A HACK, DO THIS BETTER NEXT TIME
 		pin_def_list = self._strip_comments(line_list[top_line_no:top_line_no + end_idx])
 		return pin_def_list
 
@@ -149,7 +151,7 @@ class VerilogModule:
 						"bus_min": bus_min, }
 		return bus_lim_dict
 
-	def _parse_pin_def_list(self, pin_def_list):
+	def _parse_pin_def_list(self, pin_def_list, top_line_no, line_list):
 		"""Extracts pin list from string and compiles pin dictionary."""
 
 		if len(pin_def_list) == 1:
@@ -163,6 +165,11 @@ class VerilogModule:
 		if len(pins_str_match) == 0:
 			pins_str_match = re.findall(r"(?<=\)\().*", pins_str)
 		pins_str_list = pins_str_match[0].split(',')
+
+		# Check that pin directions are actually defined here
+		if not 'input' in pins_str_match[0] or not 'output' in pins_str_match[0]:
+
+
 		for pin in pins_str_list:
 			parts = pin.split()
 			try:
@@ -183,5 +190,6 @@ class VerilogModule:
 
 			self.pins[name] = pin_info
 
-	def _extended_port_parser(self, pin_def_list):
+	def _extended_port_parser(self, pin_def_list, pin_str_list, top_line_no):
+
 
