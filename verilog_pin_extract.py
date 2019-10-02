@@ -101,7 +101,7 @@ class VerilogModule:
 		left_exp = re.findall(r"[\S]+(?=(?:[\s]*[+\-*/]))", string)
 		if len(left_exp) == 0:
 			raise KeyError(f"Parameter {string} not defined.")
-		left_exp = re.findall(r"[^`]", left_exp[0]) 			# get rid of tick
+		left_exp = re.findall(r"[^`]+", left_exp[0]) 			# get rid of tick
 		right_exp = re.findall(r"(?<=[+\-*/])[\s]*[\S]+", string)
 		if len(right_exp) == 0:
 			raise KeyError(f"Parameter {string} not defined.")
@@ -182,3 +182,6 @@ class VerilogModule:
 				pin_info.update(bus_lim_dict)
 
 			self.pins[name] = pin_info
+
+	def _extended_port_parser(self, pin_def_list):
+
