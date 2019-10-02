@@ -113,6 +113,7 @@ class GDSDesign:
 		self.gds_builder.scale_all(self.top_cell, scale_factor)
 
 	def write_gdsfile(self, filename):
+		filename = str(filename) if not isinstance(filename, str) else filename
 		self.gdsii.write_gds(filename)
 
 

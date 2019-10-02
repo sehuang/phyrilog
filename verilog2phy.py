@@ -92,6 +92,7 @@ class PHYDesign:
 		self.verilog_pg_pin_dict = verilog_module.power_pins
 		self.name = verilog_module.name
 
+		techfile = str(techfile) if not isinstance(techfile, str) else techfile
 		filetype = techfile.split('.')[-1].lower()  # This normally expects a HAMMER tech.json
 		if filetype == 'json':
 			self._extract_tech_json_info(techfile)
@@ -321,9 +322,9 @@ class BBoxPHY(PHYDesign):
 		if self.specs.get('aspect_ratio', None):
 			if not self.specs.get('xwidth', None) or not self.specs.get('ywidth', None):
 				if y_width * self.specs['aspect_ratio'][1] > min_x_dim:
-					x_width = y_width * self.specs['aspect_ratio'][1] / self.specs['aspect_ratio'][0]
+					x_width = y_width / self.specs['aspect_ratio'][1] * self.specs['aspect_ratio'][0]
 				elif x_width * self.specs['aspect_ratio'][0] > min_y_dim:
-					y_width = x_width * self.specs['aspect_ratio'][0] / self.specs['aspect_ratio'][1]
+					y_width = x_width / self.specs['aspect_ratio'][0] * self.specs['aspect_ratio'][1]
 		if x_width == 0 and y_width > 0:
 			x_width = y_width * self.specs['aspect_ratio'][1]
 		if y_width == 0 and x_width > 0:

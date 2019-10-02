@@ -157,10 +157,10 @@ class LEFBuilder(LEFBlock):
 		self.lef += '\n\n'
 		self.lef += 'END LIBRARY'
 
-	def write_lef(self, filename, path='',):
+	def write_lef(self, filename):
 		if not self.lef:
 			self.build_lef()
-		with open(path + filename, 'w') as lef_file:
+		with open(filename, 'w') as lef_file:
 			lef_file.write(self.lef)
 
 
@@ -199,4 +199,4 @@ class BBoxLEFBuilder(LEFBuilder):
 		for pin_name, pin in pins.items():
 			macro_block.add_pin(pin_name, pin)
 		for bbox in bbox.values():
-			macro_block.add_bbox_obs(bbox.phys_map)
+			macro_block.add_bbox_obs(bbox.phys_objs)
