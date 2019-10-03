@@ -179,9 +179,10 @@ class BBoxLEFBuilder(LEFBuilder):
 		bbox = phy_design.bboxes
 		pg_pins = phy_design.pg_pins
 		name = phy_design.name
-		class_line = "CLASS CORE"
+		class_line = "CLASS BLOCK"
 		header_lines = self.add_lef_header(version=5.6)
 		origin_line = f"ORIGIN {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
+		foreign_line = f"FOREIGN {name} {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
 		size_line = f"SIZE {phy_design.x_width} BY {phy_design.y_width}"
 		sym_line = f"SYMMETRY {phy_design.specs['symmetry']}"
 		site_line = f"SITE {phy_design.specs['site']}"
@@ -190,7 +191,7 @@ class BBoxLEFBuilder(LEFBuilder):
 		self.lines += '\n'
 
 		# Macro lines
-		macro_lines = [class_line, origin_line, size_line, sym_line, site_line]
+		macro_lines = [class_line, origin_line, foreign_line, size_line, sym_line]
 
 		macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
 		if add_pg_pins:
