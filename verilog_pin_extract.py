@@ -1,5 +1,6 @@
 import re
 import operator
+import json
 
 class VerilogModule:
 	"""Python Object representing a Verilog Module. This will just contain Pins"""
@@ -182,4 +183,29 @@ class VerilogModule:
 				pin_info.update(bus_lim_dict)
 
 			self.pins[name] = pin_info
+
+	def write_pin_json(self, filename, pin_specs):
+		json_dict = {'name': self.name,
+					 'revision': 0,
+					 'cells': [{'name': self.name,
+							   'pins': [],
+							   'pg_pins': []}],
+					 }
+		all_pins_specs = pin_specs['all_pins']
+		for pin_name, pin_dict in self.pins.items():
+			this_pin_specs = pin_specs.get(pin_name, dict())
+			pin_dict.update(all_pins_specs)
+			pin_dict.update(this_pin_specs) # specific pin specs take precedence
+			# pin_dict['related_power_pin'] = pin_dict.pop('power_pin')
+			# pin_dict['related_ground_pin'] = pin_dict.pop('ground_pin')
+			json_dict['cells'][0]['pins'].append(pin_dict)
+			pg_pins = [{'name': self.power_pins['power_pin'],
+						'pg_type': 'primary_power'},
+					   {'name': self.power_pins['ground_pin'],
+						'pg_type': 'primary_ground'},
+					   ]
+			json_dict['cells'][0]['pg_pins'] = pg_pins
+
+			with open(filename, 'w') as json_file:
+				json.dump(json_dict,json_file)
 
