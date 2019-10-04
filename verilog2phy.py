@@ -114,7 +114,8 @@ class PHYDesign:
 						 'symmetry': 'X Y',
 						 'site': 'core',
 						 'pins': {'h_layer': "M2",
-								  'v_layer': "M3"
+								  'v_layer': "M3",
+								  'pin_length': 1
 								  },
 						 'pg_pins': {'h_layer': "M2",
 									 'v_layer': "M3",
@@ -155,23 +156,23 @@ class PHYDesign:
 			if not pwr_pin_specs.get('xwidth', None):
 				pwr_pin_specs['xwidth'] = self.metals[pwr_pin_specs['layer']]['min_width']
 			if not pwr_pin_specs.get('ywidth', None):
-				pwr_pin_specs['ywidth'] = 1
+				pwr_pin_specs['ywidth'] = self.specs['pins']['pin_length']
 		else:
 			if not pwr_pin_specs.get('ywidth', None):
 				pwr_pin_specs['ywidth'] = self.metals[pwr_pin_specs['layer']]['min_width']
 			if not pwr_pin_specs.get('xwidth', None):
-				pwr_pin_specs['xwidth'] = 1
+				pwr_pin_specs['xwidth'] = self.specs['pins']['pin_length']
 
 		if gnd_pin_specs['side'] == 'top' or gnd_pin_specs['side'] == 'bottom':
 			if not gnd_pin_specs.get('xwidth', None):
 				gnd_pin_specs['xwidth'] = self.metals[gnd_pin_specs['layer']]['min_width']
 			if not gnd_pin_specs.get('ywidth', None):
-				gnd_pin_specs['ywidth'] = 1
+				gnd_pin_specs['ywidth'] = self.specs['pins']['pin_length']
 		else:
 			if not gnd_pin_specs.get('ywidth', None):
 				gnd_pin_specs['ywidth'] = self.metals[gnd_pin_specs['layer']]['min_width']
 			if not gnd_pin_specs.get('xwidth', None):
-				gnd_pin_specs['xwidth'] = 1
+				gnd_pin_specs['xwidth'] = self.specs['pins']['pin_length']
 
 		pwr_pin_dict = {'name': power_pin_name,
 						'direction': 'inout',
@@ -216,18 +217,18 @@ class PHYDesign:
 			if side == 'left' or side == 'right':
 				layer = self.specs['pins']['h_layer']
 				if pin_spec:
-					x_width = pin_spec.get('x_width', 1)
+					x_width = pin_spec.get('x_width', self.specs['pins']['pin_length'])
 					y_width = pin_spec.get('y_width', self.metals[layer]['min_width'])
 				else:
-					x_width = 1
+					x_width = self.specs['pins']['pin_length']
 					y_width = self.metals[layer]['min_width']
 			else:
 				layer = self.specs['pins']['v_layer']
 				if pin_spec:
-					x_width = pin_spec.get('x_width', 1)
+					x_width = pin_spec.get('x_width', self.specs['pins']['pin_length'])
 					y_width = pin_spec.get('y_width', self.metals[layer]['min_width'])
 				else:
-					x_width = 'x_width', 1
+					x_width = 'x_width', self.specs['pins']['pin_length']
 					y_width = 'y_width', self.metals[layer]['min_width']
 			if pin_info.get('is_bus', None):
 				self.n_inputs += (direction == 'input') * (pin_info['bus_max'] + 1)
