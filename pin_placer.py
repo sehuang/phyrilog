@@ -1,6 +1,7 @@
 from verilog_pin_extract import VerilogModule
 from verilog2phy import *
 from utilities import *
+import numpy as np
 import enum
 
 pin_placement_algorithm = ['casual', 'strict']
@@ -40,7 +41,16 @@ class PinPlacer:
         self.specs = r_update(self.defaults, pin_specs)
         self._extract_techfile(techfile)
         self.pins = {}
-        self.pg_pins = {}
+        self._define_pg_pin_dicts()
+
+    def _define_pg_pin_dicts(self):
+        pg_pin_dicts = {}
+        for purpose, pin in self.pg_pins_dict.items():
+            pg_pin_dicts[purpose] = {'name': pin,
+                                     'direction': 'inout',
+                                     'is_analog': False}
+        self.power_pin = pg_pin_dicts['power_pin']
+        self.ground_pin = pg_pin_dicts['ground_pin']
 
     def _extract_techfile(self, techfile):
         techfile = str(techfile) if not isinstance(techfile, str) else techfile
@@ -180,7 +190,24 @@ class PinPlacer:
                     partitions = splice(partitions, new_part, partitions.index(partition))
         return partitions
 
-    def place_pins(self):
+    def place_interlaced_pg_pins(self, layer, interlace_interval, side_bounds):
+        pg_pin_specs = self.specs['pg_pins']
+        width = self.metals[layer]['min_width']
+        pitch = self.metals[layer]['pitch']
+        sides = ['left', 'right'] if  self.metals[layer]['direction'] == 'horizonal' else ['top', 'bottom']
+        pin_window = width + pitch
+        side_length = side_bounds[1] - side_bounds[0]
+        interlace_size = round(2 * pg_pin_specs.get('strap_width', width) + pg_pin_specs.get('strap_spacing', pitch), 3)
+        interlace_chunk = pin_window * interlace_interval + interlace_size
+        n_interlaces = np.floor(side_length / interlace_chunk)
+        start = side_bounds[0]
+        for n in range(n_interlaces):
+            center = start + (pin_window * interlace_interval)
+            vdd_box, gnd_box = self.draw_pg_strap(center, layer=layer, pair=True)
+            interlace_list = [(self.power_pin, vdd_box, layer), (self.ground_pin, gnd_box, layer)]
+            for side in sides:
+                self.placed_pin_sides_dict[side] += interlace_list
+
 
     def draw_pg_strap(self, center, layer=None, pair=True, pwr_obj=None, gnd_obj=None):
         pg_pin_dicts = {}
@@ -208,8 +235,8 @@ class PinPlacer:
                 gnd_xwidth = vdd_xwidth
                 gnd_ywidth = vdd_ywidth
                 gnd_pos = round(vdd_pos + pitch + vdd_xwidth / 2, 3)
-        if not pwr_obj:
-            pwr_obj = PHYPortPin(pg_pin_dicts['pwr_pin'], vdd_layer, vdd_xwidth, vdd_ywidth, center=center)
+        # if not pwr_obj:
+        #     pwr_obj = PHYPortPin(pg_pin_dicts['pwr_pin'], vdd_layer, vdd_xwidth, vdd_ywidth, center=center)
         if not pair:
             gnd_layer = layer if layer else pg_pin_specs['gnd_pin']['layer']
             if self.metals[gnd_layer]['direction'] == 'horizontal':
@@ -220,11 +247,21 @@ class PinPlacer:
                 gnd_ywidth = round(self.specs['design_boundary'][1], 3)
                 gnd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[gnd_layer]['min_width']), 3)
                 gnd_pos = round(center - gnd_ywidth / 2, 3)
-        if not gnd_obj:
-            gnd_obj = PHYPortPin(pg_pin_dicts['gnd_pin'], gnd_layer, gnd_xwidth, gnd_ywidth, center=center)
-        if self.metals[vdd_layer]['direction'] == 'horizontal':
-            pwr_obj.add_rect(vdd_layer, left_x=0, bot_y=vdd_pos)
-            gnd_obj.add_rect(vdd_layer, left_x=0, bot_y=gnd_pos)
+        # if not gnd_obj:
+        #     gnd_obj = PHYPortPin(pg_pin_dicts['gnd_pin'], gnd_layer, gnd_xwidth, gnd_ywidth, center=center)
+        if pwr_obj and gnd_obj:
+            pwr_obj.x_width = vdd_xwidth
+            pwr_obj.y_width = vdd_ywidth
+            gnd_obj.x_width = gnd_xwidth
+            gnd_obj.y_width = gnd_ywidth
+            if self.metals[vdd_layer]['direction'] == 'horizontal':
+                pwr_obj.add_rect(vdd_layer, left_x=0, bot_y=vdd_pos)
+                gnd_obj.add_rect(vdd_layer, left_x=0, bot_y=gnd_pos)
+            else:
+                pwr_obj.add_rect(vdd_layer, left_x=vdd_pos, bot_y=0)
+                gnd_obj.add_rect(vdd_layer, left_x=gnd_pos, bot_y=0)
         else:
-            pwr_obj.add_rect(vdd_layer, left_x=vdd_pos, bot_y=0)
-            gnd_obj.add_rect(vdd_layer, left_x=gnd_pos, bot_y=0)
+            if self.metals[vdd_layer]['direction'] == 'horizontal':
+                return [0, vdd_pos, vdd_xwidth, vdd_ywidth], [0, gnd_pos, gnd_xwidth, gnd_ywidth]
+            else:
+                return [vdd_pos, 0, vdd_xwidth, vdd_ywidth], [gnd_pos, 0, gnd_xwidth, gnd_ywidth]
