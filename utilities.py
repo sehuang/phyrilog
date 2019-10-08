@@ -14,3 +14,12 @@ def r_update(base_dict, update_dict):
         else:
             base_dict[key] = update_dict[key]
     return base_dict
+
+def btwn(number, bounds):
+    if number > min(bounds) and number < max(bounds):
+        return True
+    else:
+        return False
+
+def splice(base_list, new_list, splice_idx):
+    return base_list[:splice_idx] + new_list + base_list[splice_idx:]
