@@ -26,4 +26,7 @@ pin_specs = {'pins': {'h_layer': "M2",
 if __name__ == '__main__':
     test_mod = VerilogModule('TestParamsAndPorts', filename=projects_dir / 'phyrilog/tests/test_module.v')
     test_pin_placer = PinPlacer(test_mod.pins, test_mod.power_pins, test_techfile, pin_specs=pin_specs)
+    test_pin_placer._sort_pins_by_side()
+    test_pin_placer._autodefine_boundaries()
+    test_pin_placer._place_defined_pins()
     5
