@@ -1,5 +1,6 @@
 import json
 import numpy as np
+from utilities import *
 
 class Rectangle:
 	"""Represents a physical rectangle"""
@@ -111,6 +112,7 @@ class PHYDesign:
 						 'input_side': 'left',
 						 'output_side': 'right',
 						 'pin_margin': False,
+						 'interleave': False,
 						 'symmetry': 'X Y',
 						 'site': 'core',
 						 'pins': {'h_layer': "M2",
@@ -243,6 +245,109 @@ class PHYDesign:
 				self.pins[pin_name] = PHYPortPin(pin_info, layer, side, round(x_width, 3), round(y_width, 3))
 		self.phys_objs += list(self.pins.values())
 
+	def add_pg_pin_objects(self):
+		power_pin_name = self.verilog_pg_pin_dict['power_pin']
+		ground_pin_name = self.verilog_pg_pin_dict['ground_pin']
+		pg_pin_specs = self.specs['pg_pins']
+		pwr_pin_specs = self.specs['pg_pins']['pwr_pin']
+		gnd_pin_specs = self.specs['pg_pins']['gnd_pin']
+
+		if pwr_pin_specs['side'] == 'top' or pwr_pin_specs['side'] == 'bottom':
+			if not pwr_pin_specs.get('xwidth', None):
+				pwr_pin_specs['xwidth'] = self.metals[pwr_pin_specs['layer']]['min_width']
+			if not pwr_pin_specs.get('ywidth', None):
+				pwr_pin_specs['ywidth'] = self.specs['pins']['pin_length']
+		else:
+			if not pwr_pin_specs.get('ywidth', None):
+				pwr_pin_specs['ywidth'] = self.metals[pwr_pin_specs['layer']]['min_width']
+			if not pwr_pin_specs.get('xwidth', None):
+				pwr_pin_specs['xwidth'] = self.specs['pins']['pin_length']
+
+		if gnd_pin_specs['side'] == 'top' or gnd_pin_specs['side'] == 'bottom':
+			if not gnd_pin_specs.get('xwidth', None):
+				gnd_pin_specs['xwidth'] = self.metals[gnd_pin_specs['layer']]['min_width']
+			if not gnd_pin_specs.get('ywidth', None):
+				gnd_pin_specs['ywidth'] = self.specs['pins']['pin_length']
+		else:
+			if not gnd_pin_specs.get('ywidth', None):
+				gnd_pin_specs['ywidth'] = self.metals[gnd_pin_specs['layer']]['min_width']
+			if not gnd_pin_specs.get('xwidth', None):
+				gnd_pin_specs['xwidth'] = self.specs['pins']['pin_length']
+
+		pwr_pin_dict = {'name': power_pin_name,
+						'direction': 'inout',
+						'is_analog': False}
+		gnd_pin_dict = {'name': ground_pin_name,
+						'direction': 'inout',
+						'is_analog': False}
+		pwr_pin = PHYPortPin(pwr_pin_dict, pwr_pin_specs['layer'],
+							 pwr_pin_specs['side'],
+							 round(pwr_pin_specs['xwidth'], 3),
+							 round(pwr_pin_specs['ywidth'], 3),
+							 center=pg_pin_specs['pwr_pin'].get('center', None))
+		gnd_pin = PHYPortPin(gnd_pin_dict, pg_pin_specs['gnd_pin']['layer'],
+							 pg_pin_specs['gnd_pin']['side'],
+							 round(pg_pin_specs['gnd_pin']['xwidth'], 3),
+							 round(pg_pin_specs['gnd_pin']['ywidth'], 3),
+							 center=pg_pin_specs['gnd_pin'].get('center', None))
+		pwr_pin.type = 'POWER'
+		gnd_pin.type = 'GROUND'
+		self.pg_pins['pwr'] = pwr_pin
+		self.pg_pins['gnd'] = gnd_pin
+		self.phys_objs.append(pwr_pin)
+		self.phys_objs.append(gnd_pin)
+
+	def add_pg_pin_straps(self):
+		power_pin_name = self.verilog_pg_pin_dict['power_pin']
+		ground_pin_name = self.verilog_pg_pin_dict['ground_pin']
+		pg_pin_specs = self.specs['pg_pins']
+		pwr_pin_specs = self.specs['pg_pins']['pwr_pin']
+		gnd_pin_specs = self.specs['pg_pins']['gnd_pin']
+
+
+
+		if pwr_pin_specs['side'] == 'top' or pwr_pin_specs['side'] == 'bottom':
+			if not pwr_pin_specs.get('xwidth', None):
+				pwr_pin_specs['xwidth'] = self.metals[pwr_pin_specs['layer']]['min_width']
+			pwr_pin_specs['ywidth'] = self.y_width
+		else:
+			if not pwr_pin_specs.get('ywidth', None):
+				pwr_pin_specs['ywidth'] = self.metals[pwr_pin_specs['layer']]['min_width']
+			pwr_pin_specs['xwidth'] = self.x_width
+
+		if gnd_pin_specs['side'] == 'top' or gnd_pin_specs['side'] == 'bottom':
+			if not gnd_pin_specs.get('xwidth', None):
+				gnd_pin_specs['xwidth'] = self.metals[gnd_pin_specs['layer']]['min_width']
+			gnd_pin_specs['ywidth'] = self.y_width
+		else:
+			if not gnd_pin_specs.get('ywidth', None):
+				gnd_pin_specs['ywidth'] = self.metals[gnd_pin_specs['layer']]['min_width']
+			gnd_pin_specs['xwidth'] = self.x_width
+
+		pwr_pin_dict = {'name': power_pin_name,
+						'direction': 'inout',
+						'is_analog': False}
+		gnd_pin_dict = {'name': ground_pin_name,
+						'direction': 'inout',
+						'is_analog': False}
+		pwr_pin = PHYPortPin(pwr_pin_dict, pwr_pin_specs['layer'],
+							 pwr_pin_specs['side'],
+							 round(pwr_pin_specs['xwidth'], 3),
+							 round(pwr_pin_specs['ywidth'], 3),
+							 center=pg_pin_specs['pwr_pin'].get('center', None))
+		gnd_pin = PHYPortPin(gnd_pin_dict, pg_pin_specs['gnd_pin']['layer'],
+							 pg_pin_specs['gnd_pin']['side'],
+							 round(pg_pin_specs['gnd_pin']['xwidth'], 3),
+							 round(pg_pin_specs['gnd_pin']['ywidth'], 3),
+							 center=pg_pin_specs['gnd_pin'].get('center', None))
+		pwr_pin.type = 'POWER'
+		gnd_pin.type = 'GROUND'
+		self.pg_pins['pwr'] = pwr_pin
+		self.pg_pins['gnd'] = gnd_pin
+		self.phys_objs.append(pwr_pin)
+		self.phys_objs.append(gnd_pin)
+
+
 	def define_design_boundaries(self):
 		pass
 
@@ -289,6 +394,13 @@ class BBoxPHY(PHYDesign):
 			self.pin_sides_dict[pin.side].append(pin)
 		for pg_pin in self.pg_pins.values():
 			self.pin_sides_dict[pg_pin.side].append(pg_pin)
+		if self.specs['interleave']:
+			n = self.specs['interleave']
+			interleave_side = self.specs['interleave_side']
+			count = 0
+			for pin in self.pin_sides_dict[interleave_side]:
+				if count == n:
+
 		min_h_pins = max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right']))
 		min_v_pins = max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom']))
 
