@@ -25,6 +25,11 @@ def btwn(number, bounds):
 def splice(base_list, new_list, splice_idx):
     return base_list[:splice_idx] + new_list + base_list[splice_idx:]
 
+def replace(base_list, new_element, replace_idx):
+    if not isinstance(new_element, list):
+        new_element = [new_element]
+    return base_list[:replace_idx] + new_element + base_list[replace_idx + 1 :]
+
 def max_none(iterable):
     """Gets maximum value of iterable. If iterable is None or empty, returns 0."""
     if iterable:
