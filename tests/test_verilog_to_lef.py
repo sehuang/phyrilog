@@ -1,7 +1,7 @@
 from verilog_pin_extract import VerilogModule
 from verilog2phy import *
 from LEFBuilder import *
-from GDSBuilder import GDSDesign
+# from GDSBuilder import GDSDesign
 import pprint
 import pathlib  # I hate you Microsoft
 
@@ -10,8 +10,8 @@ test_techfile = projects_dir / 'hammer/src/hammer-vlsi/technology/asap7/asap7.te
 test_techfile = str(test_techfile)
 asap7_layermapfile = projects_dir / 'phyrilog/asap7_TechLib.layermap'
 # test_mod = VerilogModule('Memory141', filename='Memory141.v', constfile='const.vh')
-# test2_mod = VerilogModule('TestParamsAndPorts', filename='test_module.v')
-test_dco = VerilogModule('ExampleDCO', filename=projects_dir / 'ASAPDCO/views/behavioral/eagle_dco.v')
+test_mod = VerilogModule('TestParamsAndPorts', filename='test_module.v')
+# test_dco = VerilogModule('ExampleDCO', filename=projects_dir / 'ASAPDCO/views/behavioral/eagle_dco.v')
 
 
 # test_techfile = "../hammer/src/hammer-vlsi/technology/asap7/asap7.tech.json"
@@ -31,16 +31,17 @@ test_dco = VerilogModule('ExampleDCO', filename=projects_dir / 'ASAPDCO/views/be
 # 	return bbox
 
 def test_v1lef(spec_dict):
-	# bbox = BBoxPHY(test_mod, test_techfile, spec_dict=spec_dict)
-	bbox = BBoxPHY(test_dco, test_techfile, spec_dict=spec_dict)
+	bbox = BBoxPHY(test_mod, test_techfile, spec_dict=spec_dict)
+	# bbox = BBoxPHY(test_dco, test_techfile, spec_dict=spec_dict)
 	bbox.scale(4)
 	bbox_lef = BBoxLEFBuilder(bbox, indent_char_width=2)
 	pprint.pprint(bbox_lef.blocks)
 	bbox_lef.write_lef('gen_example_dco_x4.lef')
+	return bbox, bbox_lef
 
 def test_v1gds(spec_dict):
-	# bbox = BBoxPHY(test_mod, test_techfile, spec_dict=spec_dict)
-	bbox = BBoxPHY(test_dco, test_techfile, spec_dict=spec_dict)
+	bbox = BBoxPHY(test_mod, test_techfile, spec_dict=spec_dict)
+	# bbox = BBoxPHY(test_dco, test_techfile, spec_dict=spec_dict)
 	bbox.scale(4)
 	bbox_gds = GDSDesign(bbox, layermap_file=asap7_layermapfile)
 	bbox_gds.add_polygons()
@@ -71,7 +72,7 @@ if __name__ == '__main__':
 				 'site': 'coreSite',
 				 'xwidth': 30,
 				 'ywidth': 30,
-				 'interleave': 4,
+				 'interleave': 2,
 				 'output_side': 'left',
 				 'interleave_side': 'left',
 				 'pins': {
@@ -83,25 +84,25 @@ if __name__ == '__main__':
 					 'h_layer': 'M8',
 					 'v_layer': 'M9',
 					 'pwr_pin':{
-						 'xwidth': 0.215,
-						 'ywidth': 1,
-						 'layer': 'M5',
-						 'side': 'top',
-						 'center': 0.48+0.324
+						 # 'xwidth': 0.215,
+						 # 'ywidth': 1,
+						 'layer': 'M4',
+						 'side': 'left',
+						 # 'center': 0.48+0.324
 					 },
 					 'gnd_pin':{
-						 'xwidth': 0.215,
-						 'ywidth': 1,
-						 'layer': 'M5',
-						 'side': 'top',
-						 'center': 0.48
+						 # 'xwidth': 0.215,
+						 # 'ywidth': 1,
+						 'layer': 'M4',
+						 'side': 'left',
+						 # 'center': 0.48
 					 },
 				 },
 				 'exclude_layers': ['Pad']}
-	# test_v1lef(spec_dict)
+	test_v1lef(spec_dict)
 	# test_v1gds(spec_dict)
-	gen_dco_files(spec_dict)
-	gen_scaled_dco_files(spec_dict, 4)
+	# gen_dco_files(spec_dict)
+	# gen_scaled_dco_files(spec_dict, 4)
 	# bbox = test_v2lef(spec_dict)
 	# bbox_lef = BBoxLEFBuilder(filename='test_lef.lef', indent_char_width = 2)
 	# bbox_lef.make_lef_dict(bbox)
@@ -111,3 +112,4 @@ if __name__ == '__main__':
 	# bbox_lef.build_lef()
 	# print(bbox_lef.lef)
 	# bbox_lef.write_lef()
+	5

@@ -367,7 +367,8 @@ class BBoxPHY(PHYDesign):
 		super().__init__(verilog_module, techfile, spec_dict)
 
 		self.add_pin_objects()
-		self.add_pg_pin_objects()
+		# self.add_pg_pin_objects()
+		# self.add_pg_pin_straps()
 		self.define_design_boundaries()
 		self.build_design_repr()
 
@@ -394,19 +395,7 @@ class BBoxPHY(PHYDesign):
 			self.pin_sides_dict[pin.side].append(pin)
 		for pg_pin in self.pg_pins.values():
 			self.pin_sides_dict[pg_pin.side].append(pg_pin)
-		if self.specs['interleave']:
-			n = self.specs['interleave']
-			interleave_side = self.specs['interleave_side']
-			count = 0
-			idx = 0
-			for pin in self.pin_sides_dict[interleave_side]:
-				if count == n:
-					splice(self.pin_sides_dict[interleave_side], [self.pg_pins['pwr'], self.pg_pins['gnd']], idx)
-					count = 0
-					idx += 2
-				else:
-					count += 1
-				idx += 1
+
 
 		min_h_pins = max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right']))
 		min_v_pins = max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom']))
@@ -460,6 +449,20 @@ class BBoxPHY(PHYDesign):
 		self.bbox_bot_margin = round(max([pin.y_width for pin in self.pin_sides_dict['bottom']], default=0), 3)
 		self.x_width = round(self.bbox_x_width + self.bbox_left_margin + self.bbox_right_margin, 3)
 		self.y_width = round(self.bbox_y_width + self.bbox_top_margin + self.bbox_bot_margin, 3)
+		self.add_pg_pin_straps()
+		if self.specs['interleave']:
+			n = self.specs['interleave']
+			interleave_side = self.specs['interleave_side']
+			count = 0
+			idx = 0
+			for pin in self.pin_sides_dict[interleave_side]:
+				if count == n - 1:
+					self.pin_sides_dict[interleave_side]  = splice(self.pin_sides_dict[interleave_side], [self.pg_pins['pwr'], self.pg_pins['gnd']], idx)
+					count = 0
+					idx += 2
+				else:
+					count += 1
+				idx += 1
 
 	def place_pins(self, start_corner, side_dict, orientation):
 		for pin in side_dict:
