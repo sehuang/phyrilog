@@ -14,12 +14,12 @@ pin_specs = {'pins': {'h_layer': "M2",
 					  },
 			 'pg_pins': {'h_layer': "M2",
 						 'v_layer': "M3",
-						 'pwr_pin': {'layer': 'M3',
-									 'center': None,
-									 'side': 'top'},
-						 'gnd_pin': {'layer': 'M3',
-									 'center': None,
-									 'side': 'top'}}
+						 'power_pin': {'layer': 'M3',
+									   'center': None,
+									   'side': 'top'},
+						 'ground_pin': {'layer': 'M3',
+										'center': None,
+										'side': 'top'}}
 			 }
 
 
@@ -93,69 +93,112 @@ class PinPlacer:
 		self.h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch']
 		self.v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch']
 
+	# def _make_pin_obj(self, pin_dict,):
+
 	def _sort_pins_by_side(self):
 		self.pin_sides_dict = {'left': [],
 							   'right': [],
 							   'top': [],
 							   'bottom': []}
+		pin_specs = self.specs['pins']
 		for pin in self.pins_dict.values():
-			if 'side' in pin.keys():
-				self.pin_sides_dict[pin['side']].append(pin)
+			side = self.specs['port_sides'][pin['direction']]
+			if pin['name'] in pin_specs.keys():
+				side = pin_specs[pin['name']].get('side', side)
+			orientation = 'h' if side in ['left', 'right'] else 'v'
+			x_width = pin_specs['pin_length'] if orientation == 'h' else self.metals[pin_specs['v_layer']][
+				'min_width']
+			y_width = pin_specs['pin_length'] if orientation == 'v' else self.metals[pin_specs['h_layer']][
+				'min_width']
+			layer = self.specs['pins']['h_layer'] if orientation == 'h' else self.specs['pins']['v_layer']
+			center = None
+			if pin['name'] in self.specs['pins'].keys():
+				layer = self.specs['pins'][pin['name']].get('layer', layer)
+				center = self.specs['pins'][pin['name']].get('center', None)
+			if 'is_bus' in pin.keys():
+				for bus_idx in range(pin['bus_max'] + 1):
+					pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, bus_idx=bus_idx)
+					pin_obj.name = pin['name'] + '[' + str(bus_idx) + ']'
+					self.pin_sides_dict[side].append(pin_obj)
 			else:
-				side = self.specs['port_sides'][pin['direction']]
-				pin['side'] = side
-			self.pin_sides_dict[pin['side']].append(pin)
+				pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, center=center)
+				self.pin_sides_dict[side].append(pin_obj)
 		if self.specs['pg_pin_placement'] == pg_pin_placement_options[0]:
 			for purpose, pg_pin in self.pg_pins_dict.items():
 				pg_pin_dict = {'name': pg_pin,
 							   'direction': 'inout',
 							   'is_analog': False,
 							   'purpose': purpose}
-				self.pin_sides_dict[self.specs['pg_pin_sides'][purpose]].append(pg_pin_dict)
-		self._assign_pin_dimensions()
+				side = self.specs['pg_pin_sides'][purpose]
+				orientation = 'h' if side in ['left', 'right'] else 'v'
+				x_width = pin_specs['pin_length'] if orientation == 'h' else self.metals[pin_specs['v_layer']][
+					'min_width']
+				y_width = pin_specs['pin_length'] if orientation == 'v' else self.metals[pin_specs['h_layer']][
+					'min_width']
+				layer = self.specs['pg_pins']['h_layer'] if orientation == 'h' else self.specs['pg_pins']['v_layer']
+				if purpose in self.specs['pg_pins'].keys():
+					layer = self.specs['pg_pins'][purpose].get('layer', layer)
+					center = self.specs['pg_pins'][purpose].get('center', None)
+				if 'multiplier' in self.specs['pg_pins'].keys():
+					for idx in range(pg_pin['multiplier'] + 1):
+						spacing = 2 * self.metals[layer]['min_width'] + 2 * self.metals[layer]['pitch']
+						new_cent = center + round(idx * spacing, 3)
+						pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, center=new_cent)
+						self.pin_sides_dict[side].append(pin_obj)
+				else:
+					pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, center=center)
+					self.pin_sides_dict[side].append(pin_obj)
 
-	def _assign_pin_dimensions(self):
-		pin_specs = self.specs['pins']
-		metals = self.metals
-		for side, pins in self.pin_sides_dict.items():
-			orientation = 'h' if side in ['left', 'right'] else 'v'
-			for pin in pins:
-				if 'x_width' not in pin.keys():
-					x_width = pin_specs['pin_length'] if orientation == 'h' else metals[pin_specs['v_layer']][
-						'min_width']
-				if 'y_width' not in pin.keys():
-					y_width = pin_specs['pin_length'] if orientation == 'v' else metals[pin_specs['h_layer']][
-						'min_width']
-				pin['x_width'] = x_width
-				pin['y_width'] = y_width
+	# def _assign_pin_dimensions(self):
+	# 	pin_specs = self.specs['pins']
+	# 	metals = self.metals
+	# 	for side, pins in self.pin_sides_dict.items():
+	# 		orientation = 'h' if side in ['left', 'right'] else 'v'
+	# 		for pin in pins:
+	# 			if 'x_width' not in pin.keys():
+	# 				x_width = pin_specs['pin_length'] if orientation == 'h' else metals[pin_specs['v_layer']][
+	# 					'min_width']
+	# 			if 'y_width' not in pin.keys():
+	# 				y_width = pin_specs['pin_length'] if orientation == 'v' else metals[pin_specs['h_layer']][
+	# 					'min_width']
+	# 			pin['x_width'] = x_width
+	# 			pin['y_width'] = y_width
 
 	def _autodefine_boundaries(self):
 		pin_specs = self.specs['pins']
 		min_h_pins = round(max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right'])), 3)
 		min_v_pins = round(max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom'])), 3)
-		min_y_dim = round(max(sum([pin['y_width'] for pin in self.pin_sides_dict['left']]),
-							  sum([pin['y_width'] for pin in self.pin_sides_dict['right']])) + (
+		min_y_dim = round(max(sum([pin.y_width for pin in self.pin_sides_dict['left']]),
+							  sum([pin.y_width for pin in self.pin_sides_dict['right']])) + (
 								  (min_h_pins - 1) * self.h_pin_pitch), 3)
-		min_x_dim = round(max(sum([pin['x_width'] for pin in self.pin_sides_dict['top']]),
-							  sum([pin['x_width'] for pin in self.pin_sides_dict['bottom']])) + (
+		min_x_dim = round(max(sum([pin.x_width for pin in self.pin_sides_dict['top']]),
+							  sum([pin.x_width for pin in self.pin_sides_dict['bottom']])) + (
 								  (min_v_pins - 1) * self.v_pin_pitch), 3)
-		max_l_pin_length = max_none([pin['y_width'] for pin in self.pin_sides_dict['bottom']])
-		max_b_pin_length = max_none([pin['y_width'] for pin in self.pin_sides_dict['left']])
-		max_r_pin_length = max_none([pin['y_width'] for pin in self.pin_sides_dict['right']])
-		max_t_pin_length = max_none([pin['y_width'] for pin in self.pin_sides_dict['top']])
+		max_b_pin_length = max_none([pin.y_width for pin in self.pin_sides_dict['bottom']])
+		max_l_pin_length = max_none([pin.x_width for pin in self.pin_sides_dict['left']])
+		max_r_pin_length = max_none([pin.x_width for pin in self.pin_sides_dict['right']])
+		max_t_pin_length = max_none([pin.y_width for pin in self.pin_sides_dict['top']])
 		self.specs['internal_box'] = [max_l_pin_length, max_b_pin_length, min_x_dim, min_y_dim]
-		self.specs['design_boundary'] = (
-			min_x_dim + max_l_pin_length + max_r_pin_length, min_y_dim + max_t_pin_length + max_b_pin_length)
+		self.specs['design_boundary'] = [
+			min_x_dim + max_l_pin_length + max_r_pin_length, min_y_dim + max_t_pin_length + max_b_pin_length]
 		if self.specs['pin_margin']:
-			self.specs['design_boundary'] = (
-				min_x_dim + max_l_pin_length + max_r_pin_length + self.v_pin_pitch,
-				min_y_dim + max_t_pin_length + max_b_pin_length + self.h_pin_pitch)
+			self.specs['design_boundary'] = [
+				round(min_x_dim + max_l_pin_length + max_r_pin_length + 2 * self.v_pin_pitch, 3),
+				round(min_y_dim + max_t_pin_length + max_b_pin_length + 2 * self.h_pin_pitch, 3)]
 		if self.specs.get('aspect_ratio', None):
 			dom_dim_idx = self.specs['design_boundary'].index(max(self.specs['design_boundary']))
 			sub_dim_idx = self.specs['design_boundary'].index(min(self.specs['design_boundary']))
 			sub_dim = round(self.specs['design_boundary'][dom_dim_idx] / self.specs['aspect_ratio'][dom_dim_idx] *
 							self.specs['aspect_ratio'][sub_dim_idx], 3)
-			self.specs['design_boundary'][sub_dim_idx] = sub_dim
+			self.specs['design_boundary'][sub_dim_idx] = round(sub_dim, 3)
+			box_sides = [self.specs['internal_box'][2] - self.specs['internal_box'][0],
+						 self.specs['internal_box'][3] - self.specs['internal_box'][1]]
+			dom_dim_idx = box_sides.index(max(box_sides))
+			sub_dim_idx = box_sides.index(min(box_sides))
+			sub_dim = round(box_sides[dom_dim_idx] / self.specs['aspect_ratio'][dom_dim_idx] *
+							self.specs['aspect_ratio'][sub_dim_idx], 3)
+			box_sides[sub_dim_idx] = sub_dim
+			self.specs['internal_box'][2 + sub_dim_idx] = round(self.specs['internal_box'][0 + sub_dim_idx] + sub_dim, 3)
 		self.specs['bound_box'] = self.specs['origin'] + list(self.specs['design_boundary'])
 
 	def _place_defined_pins(self):
@@ -166,7 +209,7 @@ class PinPlacer:
 		pin_specs = self.specs['pins']
 		for side_name, side in self.pin_sides_dict.items():
 			for pin in side:
-				if pin['name'] in pin_specs.keys():
+				if pin.name in pin_specs.keys():
 					x_pos = pin_specs[pin.name].get('x_pos', None)
 					y_pos = pin_specs[pin.name].get('y_pos', None)
 					center = pin_specs[pin.name].get('center', None)
@@ -190,6 +233,7 @@ class PinPlacer:
 							right_x = round(center + x_width / 2, 3)
 							bot_y = 0 if side_name == 'bottom' else round(self.specs['design_boundary'][1] - y_width, 3)
 							top_y = y_width if side_name == 'bottom' else round(self.specs['design_boundary'][1], 3)
+						pin.add_rect(layer, left_x=left_x, bot_y=bot_y)
 						self.placed_pin_sides_dict[side_name].append((pin, [left_x, bot_y, right_x, top_y], layer))
 						side.pop(side.index(pin))
 
@@ -198,71 +242,103 @@ class PinPlacer:
 						   'right': [],
 						   'top': [],
 						   'bottom': []}
-		bounds = {'left': (self.specs['internal_box'][1], self.specs['internal_box'][3]),
-				  'right': (self.specs['internal_box'][1], self.specs['internal_box'][3]),
-				  'top': (self.specs['internal_box'][0], self.specs['internal_box'][2]),
-				  'bottom': (self.specs['internal_box'][0], self.specs['internal_box'][2])}
+		bounds = {'left': [self.specs['internal_box'][1], self.specs['internal_box'][3]],
+				  'right': [self.specs['internal_box'][1], self.specs['internal_box'][3]],
+				  'top': [self.specs['internal_box'][0], self.specs['internal_box'][2]],
+				  'bottom': [self.specs['internal_box'][0], self.specs['internal_box'][2]]}
 		for side in self.partitions.keys():
-			self.partitions[side] += self._subpartition_side(bounds[side], self.placed_pin_sides_dict[side])
+			self.partitions[side] += self._subpartition_side([bounds[side]], self.placed_pin_sides_dict[side])
+		# if self.specs['pg_pin_placement'] == pg_pin_placement_options[2]:
+		# 	self.partitions[side] += self._subpartition_side()
 
-	def _subpartition_interval(self, bounds, pin):
+	def _subpartition_interval(self, bounds, rect):
 		"""Subpartitions a given interval with the given placed pin
 
 		Arguments
 		---------
 		bounds: list[float, float]
 			Lower and upper bound of interval, respectively
-		pins: tuple
-			Placed_pin tuple
+		rect: Rectangle object
+			Rectangle object occupying dividing space
 		"""
-		pin_dict = pin[0]
-		center = pin_dict['center']
-		layer = pin[-1]
-		pin_dimensions = pin[1]
+		center = rect.center
+		layer = rect.layer
+		pin_dimensions = rect.coords
 		if btwn(center, bounds):
 			pitch = self.metals[layer]['pitch']
 			direction = self.metals[layer]['direction']
 			if direction == 'horizontal':
-				lower_interval = [bounds[0], pin_dimensions[1] - pitch]
-				upper_interval = [pin_dimensions[-1] + pitch, bounds[1]]
+				lower_interval = [round(bounds[0], 3), round(pin_dimensions[1] - pitch, 3)]
+				upper_interval = [round(pin_dimensions[-1] + pitch, 3), round(bounds[1], 3)]
 			else:
-				lower_interval = [bounds[0], pin_dimensions[0] - pitch]
-				upper_interval = [pin_dimensions[-2] + pitch, bounds[1]]
+				lower_interval = [round(bounds[0], 3), round(pin_dimensions[0] - pitch, 3)]
+				upper_interval = [round(pin_dimensions[-2] + pitch, 3), round(bounds[1], 3)]
 			partitions = [lower_interval, upper_interval]
 		else:
 			partitions = [bounds]
 		return partitions
 
 	def _subpartition_side(self, side_bounds, placed_pins):
-		partitions = [side_bounds]
+		partitions = side_bounds
 		for pin in placed_pins:
-			pin_dict = pin[0]
-			center = pin_dict['center']
-			for partition in partitions:
-				if btwn(center, partition):
-					new_part = self._subpartition_interval(partition, pin)
-					partitions = splice(partitions, new_part, partitions.index(partition))
+			pin_obj = pin[0]
+			for rect in pin_obj.rects.values():
+				center = rect.center
+				for partition in partitions:
+					if btwn(center, partition):
+						new_part = self._subpartition_interval(partition, rect)
+						partitions = replace(partitions, new_part, partitions.index(partition))
 		return partitions
 
 	def place_interlaced_pg_pins(self, layer, interlace_interval, side_bounds):
 		pg_pin_specs = self.specs['pg_pins']
 		width = self.metals[layer]['min_width']
 		pitch = self.metals[layer]['pitch']
-		sides = ['left', 'right'] if self.metals[layer]['direction'] == 'horizonal' else ['top', 'bottom']
+		sides = ['left', 'right'] if self.metals[layer]['direction'] == 'horizontal' else ['top', 'bottom']
 		pin_window = width + pitch
 		side_length = side_bounds[1] - side_bounds[0]
 		interlace_size = round(2 * pg_pin_specs.get('strap_width', width) + pg_pin_specs.get('strap_spacing', pitch), 3)
 		interlace_chunk = pin_window * interlace_interval + interlace_size
-		n_interlaces = np.floor(side_length / interlace_chunk)
+		n_interlaces = int(np.floor(side_length / interlace_chunk))
 		start = side_bounds[0]
+		vdd_obj1, vdd_ob2, gnd_obj1, gnd_obj2 = self._get_pg_strap_objs()
+		self.power_pin = vdd_obj1
+		self.ground_pin = gnd_obj1
 		for n in range(n_interlaces):
-			center = start + (pin_window * interlace_interval)
-			vdd_box, gnd_box = self.draw_pg_strap(center, layer=layer, pair=True)
-			interlace_list = [(self.power_pin, vdd_box, layer), (self.ground_pin, gnd_box, layer)]
+			vdd_center = round(start + (pin_window * interlace_interval) * n, 3)
+			vdd_box, gnd_box = self.draw_pg_strap(vdd_center, vdd_obj1, gnd_obj1, layer=layer, pair=True)
+			interlace_list = [(vdd_obj1, vdd_box, layer), (vdd_obj1, vdd_box, layer),
+							  (gnd_obj1, gnd_box, layer), (gnd_obj2, gnd_box, layer)]
 			for side in sides:
 				self.placed_pin_sides_dict[side] += interlace_list
 
-	def draw_pg_strap(self, center, layer=None, pair=True, pwr_obj=None, gnd_obj=None):
+	def _get_pg_strap_objs(self, pair=True):
+		pg_pin_dicts = {}
+		pg_pin_specs = self.specs['pg_pins']
+		vdd_layer = pg_pin_specs['pwr_pin']['layer']
+		gnd_layer = pg_pin_specs['gnd_pin']['layer']
+		for purpose, pin in self.pg_pins_dict.items():
+			pg_pin_dicts[purpose] = {'name': pin,
+									 'direction': 'inout',
+									 'is_analog': False}
+		if self.metals[vdd_layer]['direction'] == 'horizontal':
+			vdd_xwidth = round(self.specs['design_boundary'][0], 3)
+			vdd_ywidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), 3)
+			gnd_xwidth = vdd_xwidth
+			gnd_ywidth = vdd_ywidth
+		else:
+			vdd_ywidth = round(self.specs['design_boundary'][1], 3)
+			vdd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), 3)
+			gnd_xwidth = vdd_xwidth
+			gnd_ywidth = vdd_ywidth
+		side = ['left', 'right'] if pg_pin_specs['strap_orientation'] == 'horizontal' else ['top', 'bottom']
+		vdd_obj1 = PHYPortPin(pg_pin_dicts['power_pin'], vdd_layer, side[0], vdd_xwidth, vdd_ywidth)
+		gnd_obj1 = PHYPortPin(pg_pin_dicts['ground_pin'], gnd_layer, side[0], gnd_xwidth, gnd_ywidth)
+		vdd_obj2 = PHYPortPin(pg_pin_dicts['power_pin'], vdd_layer, side[1], vdd_xwidth, vdd_ywidth)
+		gnd_obj2 = PHYPortPin(pg_pin_dicts['ground_pin'], gnd_layer, side[1], gnd_xwidth, gnd_ywidth)
+		return vdd_obj1, gnd_obj1, vdd_obj2, gnd_obj2
+
+	def draw_pg_strap(self, center, pwr_obj, gnd_obj, layer=None, pair=True):
 		pg_pin_dicts = {}
 		pg_pin_specs = self.specs['pg_pins']
 		for purpose, pin in self.pg_pins_dict.items():
@@ -279,6 +355,7 @@ class PinPlacer:
 				gnd_xwidth = vdd_xwidth
 				gnd_ywidth = vdd_ywidth
 				gnd_pos = round(vdd_pos + pitch + vdd_ywidth / 2, 3)
+				gnd_center = round(center + pitch + vdd_ywidth / 2, 3)
 		else:
 			vdd_ywidth = round(self.specs['design_boundary'][1], 3)
 			vdd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), 3)
@@ -288,6 +365,7 @@ class PinPlacer:
 				gnd_xwidth = vdd_xwidth
 				gnd_ywidth = vdd_ywidth
 				gnd_pos = round(vdd_pos + pitch + vdd_xwidth / 2, 3)
+				gnd_center = round(center + pitch + vdd_ywidth / 2, 3)
 		# if not pwr_obj:
 		#     pwr_obj = PHYPortPin(pg_pin_dicts['pwr_pin'], vdd_layer, vdd_xwidth, vdd_ywidth, center=center)
 		if not pair:
@@ -302,19 +380,15 @@ class PinPlacer:
 				gnd_pos = round(center - gnd_ywidth / 2, 3)
 		# if not gnd_obj:
 		#     gnd_obj = PHYPortPin(pg_pin_dicts['gnd_pin'], gnd_layer, gnd_xwidth, gnd_ywidth, center=center)
-		if pwr_obj and gnd_obj:
-			pwr_obj.x_width = vdd_xwidth
-			pwr_obj.y_width = vdd_ywidth
-			gnd_obj.x_width = gnd_xwidth
-			gnd_obj.y_width = gnd_ywidth
-			if self.metals[vdd_layer]['direction'] == 'horizontal':
-				pwr_obj.add_rect(vdd_layer, left_x=0, bot_y=vdd_pos)
-				gnd_obj.add_rect(vdd_layer, left_x=0, bot_y=gnd_pos)
-			else:
-				pwr_obj.add_rect(vdd_layer, left_x=vdd_pos, bot_y=0)
-				gnd_obj.add_rect(vdd_layer, left_x=gnd_pos, bot_y=0)
+		pwr_obj.x_width = vdd_xwidth
+		pwr_obj.y_width = vdd_ywidth
+		gnd_obj.x_width = gnd_xwidth
+		gnd_obj.y_width = gnd_ywidth
+		if self.metals[vdd_layer]['direction'] == 'horizontal':
+			pwr_obj.add_rect(vdd_layer, left_x=0, bot_y=vdd_pos)
+			gnd_obj.add_rect(vdd_layer, left_x=0, bot_y=gnd_pos)
 		else:
-			if self.metals[vdd_layer]['direction'] == 'horizontal':
-				return [0, vdd_pos, vdd_xwidth, vdd_ywidth], [0, gnd_pos, gnd_xwidth, gnd_ywidth]
-			else:
-				return [vdd_pos, 0, vdd_xwidth, vdd_ywidth], [gnd_pos, 0, gnd_xwidth, gnd_ywidth]
+			pwr_obj.add_rect(vdd_layer, left_x=vdd_pos, bot_y=0)
+			gnd_obj.add_rect(vdd_layer, left_x=gnd_pos, bot_y=0)
+		return pwr_obj.rects[center].coords, gnd_obj.rects[gnd_center].coords
+

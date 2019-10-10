@@ -3,14 +3,28 @@ import numpy as np
 
 class Rectangle:
 	"""Represents a physical rectangle"""
-	def __init__(self, layer, left_x, bot_y, right_x, top_y, purpose=['drawing']):
+	def __init__(self, layer, left_x, bot_y, right_x, top_y, orientation=None, purpose=['drawing']):
 		self.layer = layer
 		self.coords = [round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]
 		self.purpose = purpose
+		self.orientation = orientation
 
 	def scale(self, scale_factor):
 		coord_arr = np.asarray(self.coords) * scale_factor
 		self.coords = coord_arr.tolist()
+
+	@property
+	def centroid(self):
+		return (round((self.coords[0] + self.coords[2]) / 2, 3), round((self.coords[1] + self.coords[3]) / 2, 3))
+
+	@property
+	def center(self):
+		if self.orientation == 'horizontal':
+			return self.centroid[1]
+		elif self.orientation == 'vertical':
+			return self.centroid[0]
+		else:
+			return self.centroid
 
 class Label:
 	def __init__(self, text, layer, position, show=True):
@@ -29,9 +43,12 @@ class PHYObject:
 		self.name = name
 		self.purpose = None
 		self.phys_objs = []
+		self.rects = {}
 
 	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['drawing']):
-		self.phys_objs.append(Rectangle(layer, left_x, bot_y, right_x, top_y, purpose))
+		rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
+		self.phys_objs.append(rect_obj)
+		self.rects[rect_obj.centroid] = rect_obj
 
 	# self.phys_map[layer]['shape'] = 'RECT'
 
@@ -56,15 +73,21 @@ class PHYPortPin(PHYObject):
 			self.bus_idx = bus_idx
 			self.name = self.name + f'[{self.bus_idx}]'
 		self.block_structure = {}
+		self.labels = []
 
 	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['drawing', 'pin']):
 		right_x = left_x + self.x_width
 		top_y = bot_y + self.y_width
-		self.phys_objs.append(Rectangle(layer, left_x, bot_y, right_x, top_y, purpose))
+		orientation = 'horizontal' if self.side in ['left', 'right'] else 'vertical'
+		rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, orientation, purpose=purpose)
+		self.phys_objs.append(rect_obj)
+		self.rects[rect_obj.center] = rect_obj
 		self.add_label(layer, ((right_x + left_x) / 2, (top_y + bot_y) / 2))
 
 	def add_label(self, layer, position):
-		self.phys_objs.append(Label(self.name, layer, position, show=True))
+		label_obj = Label(self.name, layer, position, show=True)
+		self.phys_objs.append(label_obj)
+		self.labels.append(label_obj)
 
 	def scale(self, scale_factor):
 		for rect in self.phys_objs:
@@ -78,7 +101,9 @@ class PHYBBox(PHYObject):
 			self.add_rect(layer, left_x, bot_y, left_x + x_width, bot_y + y_width)
 
 	def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
-		self.phys_objs.append(Rectangle(layer, left_x, bot_y, right_x, top_y, purpose))
+		rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
+		self.phys_objs.append(rect_obj)
+		self.rects[rect_obj.centroid] = rect_obj
 
 	def scale(self, scale_factor):
 		for rect in self.phys_objs:

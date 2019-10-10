@@ -8,12 +8,15 @@ test_techfile = projects_dir / 'hammer/src/hammer-vlsi/technology/asap7/asap7.te
 test_techfile = str(test_techfile)
 asap7_layermapfile = projects_dir / 'phyrilog/asap7_TechLib.layermap'
 
-pin_specs = {'pins': {'h_layer': "M2",
-                      'v_layer': "M3",
-                      'pin_length': 1
+pin_specs = {'pins': {'h_layer': "M4",
+                      'v_layer': "M5",
+                      'pin_length': 1,
+                      'carry':{'center': 1.5,
+                               'side': 'top'}
                       },
-             'pg_pins': {'h_layer': "M2",
-                         'v_layer': "M3",
+             'pg_pins': {'h_layer': "M4",
+                         'v_layer': "M5",
+                         'strap_orientation': 'horizontal',
                          'pwr_pin': {'layer': 'M3',
                                      'center': None,
                                      'side': 'top'},
@@ -22,11 +25,15 @@ pin_specs = {'pins': {'h_layer': "M2",
                                      'side': 'top'}}
              }
 
+options = {'aspect_ratio' : [1,2]}
+
 
 if __name__ == '__main__':
     test_mod = VerilogModule('TestParamsAndPorts', filename=projects_dir / 'phyrilog/tests/test_module.v')
-    test_pin_placer = PinPlacer(test_mod.pins, test_mod.power_pins, test_techfile, pin_specs=pin_specs)
+    test_pin_placer = PinPlacer(test_mod.pins, test_mod.power_pins, test_techfile, pin_specs=pin_specs, options_dict=options)
     test_pin_placer._sort_pins_by_side()
     test_pin_placer._autodefine_boundaries()
     test_pin_placer._place_defined_pins()
+    test_pin_placer.place_interlaced_pg_pins('M4', 1, test_pin_placer.specs['design_boundary'][:2])
+    test_pin_placer._make_subpartitions()
     5
