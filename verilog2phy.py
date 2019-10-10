@@ -398,8 +398,15 @@ class BBoxPHY(PHYDesign):
 			n = self.specs['interleave']
 			interleave_side = self.specs['interleave_side']
 			count = 0
+			idx = 0
 			for pin in self.pin_sides_dict[interleave_side]:
 				if count == n:
+					splice(self.pin_sides_dict[interleave_side], [self.pg_pins['pwr'], self.pg_pins['gnd']], idx)
+					count = 0
+					idx += 2
+				else:
+					count += 1
+				idx += 1
 
 		min_h_pins = max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right']))
 		min_v_pins = max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom']))

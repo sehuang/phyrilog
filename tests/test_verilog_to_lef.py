@@ -71,6 +71,9 @@ if __name__ == '__main__':
 				 'site': 'coreSite',
 				 'xwidth': 30,
 				 'ywidth': 30,
+				 'interleave': 4,
+				 'output_side': 'left',
+				 'interleave_side': 'left',
 				 'pins': {
 					 'h_layer': 'M4',
 					 'v_layer': 'M5',
