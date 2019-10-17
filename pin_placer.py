@@ -403,8 +403,12 @@ class PinPlacer:
 			for interval in partitions:
 				self.pin_sides_dict[side].pop()
 
-	def _placement_engine_dispatcher(self):
-		pass
+	def _placement_engine_dispatcher(self, *args):
+		dispatch_dict = {'min_pitch': self._minimum_pitch_engine,
+						 'distributed': self._distributed_place_engine,
+						 'center-span': self._center_span_engine}
+		placement_engine = dispatch_dict[self.specs['pin_spacing']]
+		placement_engine(*args)
 
 	def _minimum_pitch_engine(self, interval, orientation, ref_edge, pin_list):
 		lower = interval[0]
