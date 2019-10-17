@@ -56,7 +56,7 @@ class PinPlacer:
 		self.specs = r_update(self.defaults, pin_specs)
 		self.specs = r_update(self.specs, options_dict)
 		self._extract_techfile(techfile)
-		self.pins = {}
+		self.pins = []
 		self._define_pg_pin_dicts()
 
 	def _define_pg_pin_dicts(self):
@@ -120,9 +120,11 @@ class PinPlacer:
 					pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, bus_idx=bus_idx)
 					pin_obj.name = pin['name'] + '[' + str(bus_idx) + ']'
 					self.pin_sides_dict[side].append(pin_obj)
+					self.pins.append(pin_obj)
 			else:
 				pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, center=center)
 				self.pin_sides_dict[side].append(pin_obj)
+				self.pins.append(pin_obj)
 		if self.specs['pg_pin_placement'] == pg_pin_placement_options[0]:
 			for purpose, pg_pin in self.pg_pins_dict.items():
 				pg_pin_dict = {'name': pg_pin,
@@ -145,9 +147,11 @@ class PinPlacer:
 						new_cent = center + round(idx * spacing, 3)
 						pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, center=new_cent)
 						self.pin_sides_dict[side].append(pin_obj)
+						self.pins.append(pin_obj)
 				else:
 					pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, center=center)
 					self.pin_sides_dict[side].append(pin_obj)
+					self.pins.append(pin_obj)
 
 	# def _assign_pin_dimensions(self):
 	# 	pin_specs = self.specs['pins']
@@ -336,6 +340,8 @@ class PinPlacer:
 		gnd_obj1 = PHYPortPin(pg_pin_dicts['ground_pin'], gnd_layer, side[0], gnd_xwidth, gnd_ywidth)
 		vdd_obj2 = PHYPortPin(pg_pin_dicts['power_pin'], vdd_layer, side[1], vdd_xwidth, vdd_ywidth)
 		gnd_obj2 = PHYPortPin(pg_pin_dicts['ground_pin'], gnd_layer, side[1], gnd_xwidth, gnd_ywidth)
+		for obj in [vdd_obj1, gnd_obj1, vdd_obj2, gnd_obj2]:
+			self.pins.append(obj)
 		return vdd_obj1, gnd_obj1, vdd_obj2, gnd_obj2
 
 	def draw_pg_strap(self, center, pwr_obj, gnd_obj, layer=None, pair=True):
@@ -391,4 +397,78 @@ class PinPlacer:
 			pwr_obj.add_rect(vdd_layer, left_x=vdd_pos, bot_y=0)
 			gnd_obj.add_rect(vdd_layer, left_x=gnd_pos, bot_y=0)
 		return pwr_obj.rects[center].coords, gnd_obj.rects[gnd_center].coords
+
+	def place_free_pins(self):
+		for side, partitions in self.partitions.items():
+			for interval in partitions:
+				self.pin_sides_dict[side].pop()
+
+	def _placement_engine_dispatcher(self):
+		pass
+
+	def _minimum_pitch_engine(self, interval, orientation, ref_edge, pin_list):
+		lower = interval[0]
+
+		while lower < interval[1]:
+			pin = pin_list.pop()
+			if orientation == 'horizontal':
+				layer = pin.layer
+				width = pin.y_width
+				pitch = self.metals[layer]['pitch']
+				lower_y = round(lower, 3)
+				upper_y = round(lower + width, 3)
+				if upper_y > interval[1]:
+					return 1
+				pin.add_rect(layer, left_x=ref_edge, bot_y=lower_y)
+				lower = round(upper_y + pitch, 3)
+			else:
+				layer = pin.layer
+				width = pin.x_width
+				pitch = self.metals[layer]['pitch']
+				lower_x = round(lower, 3)
+				upper_x = round(lower + width, 3)
+				if upper_x > interval[1]:
+					return 1
+				pin.add_rect(layer, left_x=lower_x, bot_y=ref_edge)
+				lower = round(upper_x + pitch, 3)
+		return 0
+
+	def _distributed_place_engine(self, interval, orientation, ref_edge, pin_list):
+		interval_size = interval[1] - interval[0]
+		# First, check if all pins can fit
+		total_pin_width = 0
+		min_pin_pitch = 0
+		n_pins = len(pin_list)
+		for pin in pin_list:
+			total_pin_width += pin.y_width if orientation == 'horizontal' else pin.x_width
+			min_pin_pitch += self.metals[pin.layer]['pitch']
+		all_fit = total_pin_width < interval_size and (interval_size - total_pin_width) >= min_pin_pitch
+		# If they all fit with room to spare, then distribute them evenly
+		if all_fit:
+			space = interval_size - total_pin_width
+			interpin_space = round(space / (n_pins - 1), 3)
+			lower = interval[0]
+			for pin in pin_list:
+				layer = pin.layer
+				if orientation == 'horizontal':
+					width = pin.y_width
+					upper = round(lower + width, 3)
+					pin.add_rect(layer, left_x=ref_edge, bot_y=lower)
+					lower = round(upper + interpin_space)
+				else:
+					width = pin.x_width
+					upper = round(lower + width, 3)
+					pin.add_rect(layer, left_x=lower, bot_y=ref_edge)
+					lower = round(upper + interpin_space)
+			return []
+		else:
+			# If they cannot all fit, then use the minimum pitch placer and return the rest of the list
+			self._minimum_pitch_engine(interval, orientation, ref_edge, pin_list)
+			return pin_list
+
+	def _center_span_engine(self, interval, orientation, ref_edge, pin_list, center):
+		pass
+
+
+
 
