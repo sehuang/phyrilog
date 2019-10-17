@@ -72,6 +72,9 @@ class VerilogModule:
 				new_line_list.append(line)
 		return new_line_list
 
+	def _check_for_definitions(self, pin_def_list):
+
+
 	def _get_params_and_values(self, pins_str):
 		"""Extracts parameter definitions from string and compiles parameter dictionary.
 		Also extracts constants from Verilog header files."""
@@ -217,4 +220,5 @@ class VerilogModule:
 
 			with open(filename, 'w') as json_file:
 				json.dump(json_dict,json_file)
+
 
