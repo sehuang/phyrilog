@@ -30,8 +30,8 @@ class VerilogModule:
 
 		top_line_no = self._get_top_module_line_no(line_list, top)
 		pin_def_list = self._get_pin_def_list(line_list, top_line_no)
-		# self._check_for_definitions(pin_def_list, top_line_no, line_list)
-		self._parse_pin_def_list(pin_def_list)
+		self._check_for_definitions(pin_def_list, top_line_no, line_list)
+		# self._parse_pin_def_list(pin_def_list)
 		self.power_pins = {"power_pin": VDD,
 						   "ground_pin": VSS}
 		for pin in self.pins.values():
@@ -229,6 +229,7 @@ class VerilogModule:
 			parts = pin.split()
 			# name = re.match(r'\w', parts[-1]).string
 			# name = parts[-1]
+			direction = parts[0]
 			bus_idx = re.findall(r"\[.*\]", pin)
 			is_bus = len(bus_idx) > 0
 			names = []
@@ -238,6 +239,7 @@ class VerilogModule:
 				else:
 					names.append(part)
 			for name in names:
+				name = re.sub('[\W]+', '', name)
 				pin_info = {"name": name,
 							"direction": direction,
 							"is_analog": False
