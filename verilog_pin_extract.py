@@ -30,7 +30,8 @@ class VerilogModule:
 
 		top_line_no = self._get_top_module_line_no(line_list, top)
 		pin_def_list = self._get_pin_def_list(line_list, top_line_no)
-		self._parse_pin_def_list(pin_def_list, top_line_no, line_list)
+		self._check_for_definitions(pin_def_list, top_line_no, line_list)
+		# self._parse_pin_def_list(pin_def_list, top_line_no, line_list)
 		self.power_pins = {"power_pin": VDD,
 						   "ground_pin": VSS}
 		for pin in self.pins.values():
@@ -72,8 +73,13 @@ class VerilogModule:
 				new_line_list.append(line)
 		return new_line_list
 
-	def _check_for_definitions(self, pin_def_list):
-
+	def _check_for_definitions(self, pin_def_list, top_line_no, line_list):
+		input_check = ['input' in line for line in pin_def_list]
+		output_check = ['output' in line for line in pin_def_list]
+		if any(input_check) or any(output_check):
+			self._parse_pin_def_list(pin_def_list)
+		else:
+			self._parse_ports_in_body(top_line_no, line_list)
 
 	def _get_params_and_values(self, pins_str):
 		"""Extracts parameter definitions from string and compiles parameter dictionary.
@@ -155,7 +161,7 @@ class VerilogModule:
 						"bus_min": bus_min, }
 		return bus_lim_dict
 
-	def _parse_pin_def_list(self, pin_def_list, top_line_no, line_list):
+	def _parse_pin_def_list(self, pin_def_list):
 		"""Extracts pin list from string and compiles pin dictionary."""
 
 		if len(pin_def_list) == 1:
@@ -169,10 +175,6 @@ class VerilogModule:
 		if len(pins_str_match) == 0:
 			pins_str_match = re.findall(r"(?<=\)\().*", pins_str)
 		pins_str_list = pins_str_match[0].split(',')
-
-		# Check that pin directions are actually defined here
-		if not 'input' in pins_str_match[0] or not 'output' in pins_str_match[0]:
-
 
 		for pin in pins_str_list:
 			parts = pin.split()
@@ -194,7 +196,9 @@ class VerilogModule:
 
 			self.pins[name] = pin_info
 
-	def _extended_port_parser(self, pin_def_list, pin_str_list, top_line_no):
+	def _parse_ports_in_body(self, top_line_no, line_list):
+		use_line_list = line_list[top_line_no:]
+		for line in use_line_list:
 
 	def write_pin_json(self, filename, pin_specs):
 		json_dict = {'name': self.name,
