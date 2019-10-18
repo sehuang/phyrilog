@@ -30,8 +30,8 @@ class VerilogModule:
 
 		top_line_no = self._get_top_module_line_no(line_list, top)
 		pin_def_list = self._get_pin_def_list(line_list, top_line_no)
-		self._check_for_definitions(pin_def_list, top_line_no, line_list)
-		# self._parse_pin_def_list(pin_def_list, top_line_no, line_list)
+		# self._check_for_definitions(pin_def_list, top_line_no, line_list)
+		self._parse_pin_def_list(pin_def_list)
 		self.power_pins = {"power_pin": VDD,
 						   "ground_pin": VSS}
 		for pin in self.pins.values():
@@ -186,19 +186,67 @@ class VerilogModule:
 			name = parts[-1]
 			bus_idx = re.findall(r"\[.*\]", pin)
 			is_bus = len(bus_idx) > 0
-			pin_info = {"name": name,
-						"direction": direction,
-						"is_analog": False
-						}
-			if is_bus:
-				bus_lim_dict = self._bus_parser(bus_idx[0])
-				pin_info.update(bus_lim_dict)
+			names = []
+			for part in parts[1:]:
+				if '[' in part or ']' in part:
+					continue
+				else:
+					names.append(part)
+			for name in names:
+				pin_info = {"name": name,
+							"direction": direction,
+							"is_analog": False
+							}
+				if is_bus:
+					bus_lim_dict = self._bus_parser(bus_idx[0])
+					pin_info.update(bus_lim_dict)
 
-			self.pins[name] = pin_info
+				self.pins[name] = pin_info
 
 	def _parse_ports_in_body(self, top_line_no, line_list):
 		use_line_list = line_list[top_line_no:]
+		pin_def_list = self._get_pin_def_list(line_list, top_line_no)
+		if len(pin_def_list) == 1:
+			pins_str = pin_def_list[0]
+		else:
+			pins_str = ''
+			for pin in pin_def_list:
+				pins_str += pin
+		pins_str = self._get_params_and_values(pins_str)
+		pins_str_match = re.findall(r"(?<=\().*", pins_str)
+		if len(pins_str_match) == 0:
+			pins_str_match = re.findall(r"(?<=\)\().*", pins_str)
+		pins_str_list = pins_str_match[0].split(',')
+
+		def_list = []
 		for line in use_line_list:
+			if 'input' in line or 'output' in line:
+				def_list.append(line)
+			if 'endmodule' in line:
+				break
+
+		for pin in def_list:
+			parts = pin.split()
+			# name = re.match(r'\w', parts[-1]).string
+			# name = parts[-1]
+			bus_idx = re.findall(r"\[.*\]", pin)
+			is_bus = len(bus_idx) > 0
+			names = []
+			for part in parts[1:]:
+				if '[' in part or ']' in part:
+					continue
+				else:
+					names.append(part)
+			for name in names:
+				pin_info = {"name": name,
+							"direction": direction,
+							"is_analog": False
+							}
+				if is_bus:
+					bus_lim_dict = self._bus_parser(bus_idx[0])
+					pin_info.update(bus_lim_dict)
+
+				self.pins[name] = pin_info
 
 	def write_pin_json(self, filename, pin_specs):
 		json_dict = {'name': self.name,
