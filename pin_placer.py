@@ -5,7 +5,7 @@ import numpy as np
 import enum
 
 pin_placement_algorithm = ['casual', 'strict']
-pin_spacing_options = ['min_pitch', 'distributed', 'center_span']
+pin_spacing_options = ['min_pitch', 'distributed']
 pg_pin_placement_options = ['small_pins', 'straps', 'interlaced']
 
 pin_specs = {'pins': {'h_layer': "M2",
@@ -400,20 +400,31 @@ class PinPlacer:
 
 	def place_free_pins(self):
 		for side, partitions in self.partitions.items():
+			pin_list = self.pin_sides_dict[side]
 			for interval in partitions:
-				self.pin_sides_dict[side].pop()
+				orientation = 'horizontal' if side in ['left', 'right'] else 'veritcal'
+				if side == 'left' or side == 'bottom':
+					ref_edge = 0
+				elif side == 'right':
+					ref_edge = self.specs['internal_box'][2]
+				elif side == 'top':
+					ref_edge = self.specs['internal_box'][3]
+				pin_list, placed_pins = self._placement_engine_dispatcher(interval, orientation, ref_edge, pin_list)
+				self.placed_pin_sides_dict[side] += placed_pins
+
 
 	def _placement_engine_dispatcher(self, *args):
 		dispatch_dict = {'min_pitch': self._minimum_pitch_engine,
 						 'distributed': self._distributed_place_engine,
-						 'center-span': self._center_span_engine}
+						 # 'center-span': self._center_span_engine
+						 }
 		placement_engine = dispatch_dict[self.specs['pin_spacing']]
-		placement_engine(*args)
+		return placement_engine(*args)
 
 	def _minimum_pitch_engine(self, interval, orientation, ref_edge, pin_list):
 		lower = interval[0]
-
-		while lower < interval[1]:
+		placed_pins = []
+		while lower < interval[1] and len(pin_list) > 0:
 			pin = pin_list.pop()
 			if orientation == 'horizontal':
 				layer = pin.layer
@@ -422,9 +433,10 @@ class PinPlacer:
 				lower_y = round(lower, 3)
 				upper_y = round(lower + width, 3)
 				if upper_y > interval[1]:
-					return 1
+					return pin_list, placed_pins
 				pin.add_rect(layer, left_x=ref_edge, bot_y=lower_y)
 				lower = round(upper_y + pitch, 3)
+				placed_pins.append(pin)
 			else:
 				layer = pin.layer
 				width = pin.x_width
@@ -432,10 +444,11 @@ class PinPlacer:
 				lower_x = round(lower, 3)
 				upper_x = round(lower + width, 3)
 				if upper_x > interval[1]:
-					return 1
+					return pin_list, placed_pins
 				pin.add_rect(layer, left_x=lower_x, bot_y=ref_edge)
 				lower = round(upper_x + pitch, 3)
-		return 0
+				placed_pins.append(pin)
+		return pin_list, placed_pins
 
 	def _distributed_place_engine(self, interval, orientation, ref_edge, pin_list):
 		interval_size = interval[1] - interval[0]
@@ -464,14 +477,15 @@ class PinPlacer:
 					upper = round(lower + width, 3)
 					pin.add_rect(layer, left_x=lower, bot_y=ref_edge)
 					lower = round(upper + interpin_space)
-			return []
+			return [], pin_list
 		else:
 			# If they cannot all fit, then use the minimum pitch placer and return the rest of the list
-			self._minimum_pitch_engine(interval, orientation, ref_edge, pin_list)
-			return pin_list
+			return self._minimum_pitch_engine(interval, orientation, ref_edge, pin_list)
 
-	def _center_span_engine(self, interval, orientation, ref_edge, pin_list, center):
-		pass
+	# def _center_span_engine(self, interval, orientation, ref_edge, pin_list, center, span):
+	# 	# Sanity check that center is within the interval
+	# 	if not btwn(center, interval):
+
 
 
 

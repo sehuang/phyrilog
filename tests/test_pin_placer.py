@@ -36,4 +36,5 @@ if __name__ == '__main__':
     test_pin_placer._place_defined_pins()
     test_pin_placer.place_interlaced_pg_pins('M4', 1, test_pin_placer.specs['design_boundary'][:2])
     test_pin_placer._make_subpartitions()
+    test_pin_placer.place_free_pins()
     5
