@@ -36,3 +36,11 @@ def max_none(iterable):
         return max(iterable)
     else:
         return 0
+
+def get_orientation(side):
+    if side in ['left', 'right']:
+        return 'horizontal'
+    elif side in ['top', 'bottom']:
+        return 'vertical'
+    else:
+        raise ValueError("Invalid side name")
