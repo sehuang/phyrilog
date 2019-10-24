@@ -12,7 +12,7 @@ module TestHybridPorts(input clock, input [3:0] A, input [3:0] B,
     output carry, output [3:0] sum);
 endmodule : TestHybridPorts
 module TestParamsAndPorts#(
-    parameter BITS = 1
+    parameter BITS = 8
 )(
     input clock,
     input [BITS-1:0] A,

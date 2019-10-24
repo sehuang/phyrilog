@@ -97,6 +97,8 @@ class BBoxPHY(PHYDesign):
             self.pin_placer.specs['bound_box'] = self.pin_placer.specs['origin'] + list(self.pin_placer.specs['design_boundary'])
         else:
             self.pin_placer.autodefine_boundaries()
+            self.bbox_x_width =  self.pin_placer.specs['internal_box'][2] - self.pin_placer.specs['internal_box'][0]
+            self.bbox_y_width = self.pin_placer.specs['internal_box'][3] - self.pin_placer.specs['internal_box'][1]
         # Update local specs to reflect pin_placer specs
         self.specs = r_update(self.specs, self.pin_placer.specs)
 

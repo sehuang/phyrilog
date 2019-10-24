@@ -185,13 +185,7 @@ class PinPlacer:
         self.specs['design_boundary'] = [
             self.min_x_dim + self.max_l_pin_length + self.max_r_pin_length,
             self.min_y_dim + self.max_t_pin_length + self.max_b_pin_length]
-        if self.specs['pin_margin']:
-            margins = np.asarray([0, 0, self.v_pin_pitch, self.h_pin_pitch])
-            self.specs['design_boundary'] = [
-                round(self.min_x_dim + self.max_l_pin_length + self.max_r_pin_length + 2 * self.v_pin_pitch, 3),
-                round(self.min_y_dim + self.max_t_pin_length + self.max_b_pin_length + 2 * self.h_pin_pitch, 3)]
-            inner_box = np.asarray(self.specs['internal_box']) + margins
-            self.specs['internal_box'] = inner_box.tolist()
+
         if self.specs.get('aspect_ratio', None):
             dom_dim_idx = self.specs['design_boundary'].index(max(self.specs['design_boundary']))
             sub_dim_idx = self.specs['design_boundary'].index(min(self.specs['design_boundary']))
@@ -207,7 +201,17 @@ class PinPlacer:
             box_sides[sub_dim_idx] = sub_dim
             self.specs['internal_box'][2 + sub_dim_idx] = round(self.specs['internal_box'][0 + sub_dim_idx] + sub_dim,
                                                                 3)
+        if self.specs['pin_margin']:
+            margins = np.asarray([0, 0, self.v_pin_pitch, self.h_pin_pitch])
+            self.specs['design_boundary'] = [
+                round(self.min_x_dim + self.max_l_pin_length + self.max_r_pin_length + 2 * self.v_pin_pitch, 3),
+                round(self.min_y_dim + self.max_t_pin_length + self.max_b_pin_length + 2 * self.h_pin_pitch, 3)]
+            inner_box = np.asarray(self.specs['internal_box']) + margins
+            self.specs['internal_box'] = inner_box.tolist()
+        self.specs['design_boundary'] = [self.specs['internal_box'][2] + self.max_r_pin_length,
+                                         self.specs['internal_box'][3] + self.max_t_pin_length]
         bound_corner = np.asarray(self.specs['origin']) + np.asarray(self.specs['design_boundary'])
+        self.specs['design_boundary'] = bound_corner.tolist()
         self.specs['bound_box'] = self.specs['origin'] + bound_corner.tolist()
 
     def _place_defined_pins(self):
@@ -314,7 +318,7 @@ class PinPlacer:
         self.power_pin = vdd_obj1
         self.ground_pin = gnd_obj1
         for n in range(n_interlaces):
-            vdd_center = round(start + (pin_window * interlace_interval) * n, 3)
+            vdd_center = round(start + (pin_window * interlace_interval) * (n + 1) + (interlace_size * (n)), 3)
             vdd_box, gnd_box = self.draw_pg_strap(vdd_center, vdd_obj1, gnd_obj1, layer=layer, pair=True)
             interlace_list = [vdd_obj1, vdd_obj2, gnd_obj1, gnd_obj2]
             for side in sides:
@@ -412,7 +416,7 @@ class PinPlacer:
         for side, partitions in self.partitions.items():
             pin_list = self.pin_sides_dict[side]
             while len(partitions) > 0:
-                interval = partitions.pop()
+                interval = partitions.pop(0)
                 orientation = get_orientation(side)
                 if side == 'left' or side == 'bottom':
                     ref_edge = 0
@@ -436,7 +440,7 @@ class PinPlacer:
         # upper = interval[0]
         placed_pins = []
         while lower < interval[1] and len(pin_list) > 0:
-            pin = pin_list.pop()
+            pin = pin_list.pop(0)
             if orientation == 'horizontal':
                 layer = pin.layer
                 width = pin.y_width
