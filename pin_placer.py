@@ -433,6 +433,7 @@ class PinPlacer:
 
     def _minimum_pitch_engine(self, interval, orientation, ref_edge, pin_list):
         lower = interval[0]
+        # upper = interval[0]
         placed_pins = []
         while lower < interval[1] and len(pin_list) > 0:
             pin = pin_list.pop()

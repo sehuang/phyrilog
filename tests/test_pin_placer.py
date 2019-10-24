@@ -34,9 +34,9 @@ options = {'aspect_ratio' : [1,2],
 
 spec_dict = {'pin_margin': True,
                  'aspect_ratio': [0.625,1],
-                 'interlace_interval': 8,
+                 'interlace_interval': 3,
                  'interlace_orientation': 'horizontal',
-                 'y_width': 12.5,
+                 # 'y_width': 12.5,
                  'site': 'coreSite',
                  'output_side': 'left',
                  'exclude_layers': ['M4', 'M5', 'M6', 'M7', 'M8', 'M9','Pad']}
