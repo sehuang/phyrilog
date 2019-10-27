@@ -308,8 +308,10 @@ class PinPlacer:
         width = self.metals[layer]['min_width']
         pitch = self.metals[layer]['pitch']
         sides = ['left', 'right'] if self.metals[layer]['direction'] == 'horizontal' else ['top', 'bottom']
-        pin_window = width + pitch
+        pin_window = round(width + pitch, 3)
         side_length = side_bounds[1] - side_bounds[0]
+        a = 2 * pg_pin_specs.get('strap_width', width)
+        b = pg_pin_specs.get('strap_spacing', pitch)
         interlace_size = round(2 * pg_pin_specs.get('strap_width', width) + pg_pin_specs.get('strap_spacing', pitch), 3)
         interlace_chunk = pin_window * interlace_interval + interlace_size
         n_interlaces = int(np.floor(side_length / interlace_chunk))

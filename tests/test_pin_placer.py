@@ -15,8 +15,8 @@ pin_specs = {'pins': {'h_layer': "M4",
                       'v_layer': "M5",
                       'pin_length': 1,
                       'output_side': 'right',
-                      'carry':{'center': 1.5,
-                               'side': 'bottom'}
+                      # 'carry':{'center': 1.5,
+                      #          'side': 'bottom'}
                       },
              'pg_pins': {'h_layer': "M4",
                          'v_layer': "M5",
