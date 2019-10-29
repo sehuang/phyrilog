@@ -9,7 +9,7 @@ from libraries.bbox_libs import *
 projects_dir = pathlib.Path(__file__).parents[2]
 test_techfile = projects_dir / 'hammer/src/hammer-vlsi/technology/asap7/asap7.tech.json'
 test_techfile = str(test_techfile)
-asap7_layermapfile = projects_dir / 'phyrilog/asap7_TechLib.layermap'
+asap7_layermapfile = projects_dir / 'phyrilog/resources/asap7_TechLib.layermap'
 
 pin_specs = {'pins': {'h_layer': "M4",
                       'v_layer': "M5",
