@@ -29,12 +29,11 @@ pin_specs = {'pins': {'h_layer': "M4",
                              'side': 'top'}}
              }
 
-options = {'aspect_ratio': [1, 2],
-           'pg_pin_placement': 'interlaced'}
+options = {'pg_pin_placement': 'small_pins'}
 
 spec_dict = {'pin_margin': True,
              'aspect_ratio': [0.625, 1],
-             'interlace_interval': 1,
+             'interlace_interval': 5,
              # 'strap_spacing': 0.092,
              'interlace_orientation': 'horizontal',
              # 'y_width': 12.5,
@@ -47,8 +46,8 @@ spec_dict = r_update(spec_dict, options)
 
 if __name__ == '__main__':
     test_mod = VerilogModule('TestParamsAndPorts', filename=projects_dir / 'phyrilog/tests/test_module.v')
-    test_pin_placer = PinPlacer(test_mod.pins, test_mod.power_pins, test_techfile, pin_specs=pin_specs,
-                                options_dict=options)
+    # test_pin_placer = PinPlacer(test_mod.pins, test_mod.power_pins, test_techfile, pin_specs=pin_specs,
+    #                             options_dict=options)
     # test_pin_placer._sort_pins_by_side()
     # test_pin_placer.autodefine_boundaries()
     # test_pin_placer._place_defined_pins()

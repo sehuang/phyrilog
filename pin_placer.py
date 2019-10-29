@@ -163,18 +163,18 @@ class PinPlacer:
                         self.pg_pins['pwr'] = pin_obj
                     else:
                         self.pg_pins['gnd'] = pin_obj
-        self.h_pin_spacing = self.h_pin_pitch - self.h_pin_width / 2
-        self.v_pin_spacing = self.v_pin_pitch - self.v_pin_width / 2
+        self.h_pin_spacing = self.h_pin_pitch - self.h_pin_width
+        self.v_pin_spacing = self.v_pin_pitch - self.v_pin_width
         self.min_h_pins = round(max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right'])), 3)
         self.min_v_pins = round(max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom'])), 3)
         self.min_y_dim = round(max(sum([pin.y_width for pin in self.pin_sides_dict['left']]) +
                                    (self.min_h_pins - 1) * self.h_pin_spacing,
-                                   sum([pin.y_width for pin in self.pin_sides_dict['right']])) + (
-                                       (self.min_h_pins - 1) * self.h_pin_spacing), 3)
+                                   sum([pin.y_width for pin in self.pin_sides_dict['right']]) + (
+                                       (self.min_h_pins - 1) * self.h_pin_spacing)), 3)
         self.min_x_dim = round(max(sum([pin.x_width for pin in self.pin_sides_dict['top']]) +
                                    (self.min_v_pins - 1) * (self.v_pin_spacing),
-                                   sum([pin.x_width for pin in self.pin_sides_dict['bottom']])) + (
-                                       (self.min_v_pins - 1) * self.v_pin_pitch), 3)
+                                   sum([pin.x_width for pin in self.pin_sides_dict['bottom']]) + (
+                                       (self.min_v_pins - 1) * self.v_pin_pitch)), 3)
 
         self.max_b_pin_length = max_none([pin.y_width for pin in self.pin_sides_dict['bottom']])
         self.max_l_pin_length = max_none([pin.x_width for pin in self.pin_sides_dict['left']])
