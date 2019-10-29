@@ -332,7 +332,8 @@ class PinPlacer:
         # for side in sides:
         #     self.placed_pin_sides_dict[side] += interlace_list
         for n in range(n_interlaces):
-            vdd_center = round(start + (pin_window * interlace_interval) * (n + 1) + strap_width * 0.5, 3)
+            vdd_center = round(start + pin_window * interlace_interval + strap_width * 0.5, 3)
+            start = start + pin_window * interlace_interval + interlace_size
             vdd_box, gnd_box = self.draw_pg_strap(vdd_center, vdd_obj1, gnd_obj1, layer=layer, pair=True)
 
 
@@ -459,28 +460,19 @@ class PinPlacer:
         placed_pins = []
         while lower < interval[1] and len(pin_list) > 0:
             pin = pin_list.pop(0)
+            layer = pin.layer
+            width = pin.y_width if orientation == 'horizontal' else pin.x_width
+            pitch = self.metals[layer]['pitch']
+            lower_dim = round(lower, 3)
+            upper_dim = round(lower + width, 3)
+            if upper_dim > interval[1]:
+                return pin_list, placed_pins
             if orientation == 'horizontal':
-                layer = pin.layer
-                width = pin.y_width
-                pitch = self.metals[layer]['pitch']
-                lower_y = round(lower, 3)
-                upper_y = round(lower + width, 3)
-                if upper_y > interval[1]:
-                    return pin_list, placed_pins
-                pin.add_rect(layer, left_x=ref_edge, bot_y=lower_y)
-                lower = round(lower_y + pitch, 3)
-                placed_pins.append(pin)
+                pin.add_rect(layer, left_x=ref_edge, bot_y=lower_dim)
             else:
-                layer = pin.layer
-                width = pin.x_width
-                pitch = self.metals[layer]['pitch']
-                lower_x = round(lower, 3)
-                upper_x = round(lower + width, 3)
-                if upper_x > interval[1]:
-                    return pin_list, placed_pins
-                pin.add_rect(layer, left_x=lower_x, bot_y=ref_edge)
-                lower = round(upper_x + pitch, 3)
-                placed_pins.append(pin)
+                pin.add_rect(layer, left_x=lower_dim, bot_y=ref_edge)
+            lower = round(lower_dim + pitch, 3)
+            placed_pins.append(pin)
         return pin_list, placed_pins
 
     def _distributed_place_engine(self, interval, orientation, ref_edge, pin_list):
