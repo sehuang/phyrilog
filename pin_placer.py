@@ -333,8 +333,8 @@ class PinPlacer:
         #     self.placed_pin_sides_dict[side] += interlace_list
         for n in range(n_interlaces):
             vdd_center = round(start + pin_window * interlace_interval + strap_width * 0.5, 3)
-            start = start + pin_window * interlace_interval + interlace_size
-            vdd_box, gnd_box = self.draw_pg_strap(vdd_center, vdd_obj1, gnd_obj1, layer=layer, pair=True)
+            start = round(start + pin_window * interlace_interval + interlace_size + (pitch - width) *0.5, 3)
+            self.draw_pg_strap(vdd_center, vdd_obj1, gnd_obj1, layer=layer, pair=True)
 
 
     def _get_pg_strap_objs(self, p_layer=None, g_layer=None):

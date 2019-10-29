@@ -34,7 +34,7 @@ options = {'aspect_ratio': [1, 2],
 
 spec_dict = {'pin_margin': True,
              'aspect_ratio': [0.625, 1],
-             'interlace_interval': 3,
+             'interlace_interval': 1,
              # 'strap_spacing': 0.092,
              'interlace_orientation': 'horizontal',
              # 'y_width': 12.5,
