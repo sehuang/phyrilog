@@ -140,6 +140,8 @@ class PHYDesign:
                          'pin_margin': False,
                          'symmetry': 'X Y',
                          'site': 'core',
+                         'design_boundary' : (10,10),
+                         'bound_box': [0, 0, 10, 10],
                          'pins': {'h_layer': "M2",
                                   'v_layer': "M3",
                                   'pin_length': 1

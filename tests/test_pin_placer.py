@@ -20,6 +20,8 @@ pin_specs = {'pins': {'h_layer': "M4",
                       },
              'pg_pins': {'h_layer': "M4",
                          'v_layer': "M5",
+                         'pg_pin_placement': 'interlaced',
+                         'interlace_interval': 5,
                          'strap_orientation': 'horizontal',
                          'pwr_pin': {  # 'layer': 'M3',
                              'center': None,
@@ -29,20 +31,18 @@ pin_specs = {'pins': {'h_layer': "M4",
                              'side': 'top'}}
              }
 
-options = {'pg_pin_placement': 'small_pins'}
+# options = {'pg_pin_placement': 'interlaced'}
 
 spec_dict = {'pin_margin': True,
              'aspect_ratio': [0.625, 1],
-             'interlace_interval': 5,
-             # 'strap_spacing': 0.092,
-             'interlace_orientation': 'horizontal',
+             'pin_spacing': 'distributed',
              # 'y_width': 12.5,
              'site': 'coreSite',
              'output_side': 'left',
              'exclude_layers': ['M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'Pad']}
 
 spec_dict = r_update(spec_dict, pin_specs)
-spec_dict = r_update(spec_dict, options)
+# spec_dict = r_update(spec_dict, options)
 
 if __name__ == '__main__':
     test_mod = VerilogModule('TestParamsAndPorts', filename=projects_dir / 'phyrilog/tests/test_module.v')
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # test_pin_placer._make_subpartitions()
     # test_pin_placer.place_free_pins()
     test_bbox = BBoxPHY(test_mod, test_techfile, spec_dict=spec_dict)
-    test_bbox.place_pins()
+    # test_bbox.place_pins()
     test_lef = BBoxLEFBuilder(test_bbox)
     test_gds = GDSDesign(test_bbox, layermap_file=asap7_layermapfile)
     test_gds.add_polygons()
