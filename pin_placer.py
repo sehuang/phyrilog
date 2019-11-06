@@ -68,6 +68,14 @@ class PinPlacer:
                                  'bottom': 0,
                                  'right': 0,
                                  'top': 0}
+        self.pin_sides_dict = {'left': [],
+                               'right': [],
+                               'top': [],
+                               'bottom': []}
+        self.placed_pin_sides_dict = {'left': [],
+                                      'right': [],
+                                      'top': [],
+                                      'bottom': []}
         self._define_pg_pin_dicts()
         self._sort_pins_by_side()
 
@@ -108,10 +116,6 @@ class PinPlacer:
     # def _make_pin_obj(self, pin_dict,):
 
     def _sort_pins_by_side(self):
-        self.pin_sides_dict = {'left': [],
-                               'right': [],
-                               'top': [],
-                               'bottom': []}
         pin_specs = self.specs['pins']
         for pin in self.pins_dict.values():
             side = self.specs['port_sides'][pin['direction']]
@@ -227,10 +231,6 @@ class PinPlacer:
         self.specs['bound_box'] = self.specs['origin'] + bound_corner.tolist()
 
     def _place_defined_pins(self):
-        self.placed_pin_sides_dict = {'left': [],
-                                      'right': [],
-                                      'top': [],
-                                      'bottom': []}
         pin_specs = self.specs['pins']
         for side_name, side in self.pin_sides_dict.items():
             for pin in side:
@@ -360,8 +360,8 @@ class PinPlacer:
                 pin_window = min(self.dist_pin_spacing[sides[0]], self.dist_pin_spacing[sides[1]])
         start = side_bounds[0] + self.specs['pin_margin'] * pitch * 0.5
         vdd_obj1, gnd_obj1, vdd_obj2, gnd_obj2 = self._get_pg_strap_objs(p_layer=layer)
-        self.power_pin = vdd_obj1
-        self.ground_pin = gnd_obj1
+        # self.power_pin = vdd_obj1
+        # self.ground_pin = gnd_obj1
         interlace_list = [vdd_obj1, vdd_obj2, gnd_obj1, gnd_obj2]
         self.placed_pin_sides_dict[sides[0]] += [vdd_obj1, gnd_obj1]
         self.placed_pin_sides_dict[sides[1]] += [vdd_obj1, gnd_obj1]
@@ -585,13 +585,15 @@ class PinPlacer:
             self.place_interlaced_pg_pins(layer, interval, bounds)
         self._make_subpartitions()
         self.place_free_pins()
+        failed = False
         for side, pin_list in self.pin_sides_dict.items():
             if pin_list:
+                failed = True
                 print(f"WARNING: Not all pins on the {side} side were able to be placed!")
                 print(f"The following pins on the {side} side were not placed:")
                 for pin in pin_list:
                     print(f"\t{pin.name}")
-        # self._clean_pin_lists()
+        return int(failed)
 
     def _clean_pin_lists(self):
         """To do the interlace pg striping, I have to create some 'ghost' pins so the sides

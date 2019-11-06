@@ -82,9 +82,10 @@ class PHYPortPin(PHYObject):
         top_y = bot_y + self.y_width
         orientation = 'horizontal' if self.side in ['left', 'right'] else 'vertical'
         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, orientation, purpose=purpose)
-        self.phys_objs.append(rect_obj)
-        self.rects[rect_obj.center] = rect_obj
-        self.add_label(layer, ((right_x + left_x) / 2, (top_y + bot_y) / 2))
+        if rect_obj.center not in self.rects.keys():
+            self.phys_objs.append(rect_obj)
+            self.rects[rect_obj.center] = rect_obj
+            self.add_label(layer, ((right_x + left_x) / 2, (top_y + bot_y) / 2))
 
     def add_label(self, layer, position):
         label_obj = Label(self.name, layer, position, show=True)
