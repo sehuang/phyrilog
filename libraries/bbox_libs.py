@@ -5,11 +5,11 @@ from pin_placer import *
 
 
 class PHYBBox(PHYObject):
-    def __init__(self, layers, left_x, bot_y, x_width, y_width):
+    def __init__(self, layers, left_x, bot_y, right_x, top_y):
         super().__init__("BBOX")
         self.purpose = 'blockage'
         for layer in layers:
-            self.add_rect(layer, left_x, bot_y, left_x + x_width, bot_y + y_width)
+            self.add_rect(layer, left_x, bot_y, right_x, top_y)
 
     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
@@ -31,31 +31,53 @@ class BBoxPHY(PHYDesign):
                               }
         specs = r_update(self.bbox_defaults, spec_dict)
         super().__init__(verilog_module, techfile, specs)
+        self.placement_iter = 1
         # self.add_pin_objects()
         # self.add_pg_pin_objects()
         # self.build_design_repr()
-        self.pin_specs = self.specs['pins']
-        self.pin_specs = r_update(self.pin_specs, self.specs['pg_pins'])
+        self.pin_specs = {'pins':self.specs['pins'],
+                          'pg_pins': self.specs['pg_pins']}
+        # self.pin_specs = r_update(self.pin_specs, self.specs['pg_pins'])
         self.pin_placer = PinPlacer(verilog_module.pins, verilog_module.power_pins, techfile,
                                     pin_specs=self.pin_specs, options_dict=spec_dict)
         self.define_design_boundaries()
+        self.place_pins()
         self.build_design_repr()
+
+
+    @property
+    def x_width(self):
+        return self.specs['design_boundary'][0]
+
+    @property
+    def y_width(self):
+        return self.specs['design_boundary'][1]
+
+    @x_width.setter
+    def x_width(self, value):
+        self.specs['design_boundary'] = (value, self.specs['design_boundary'][1])
+        self.specs['bound_box'][2] = value
+
+    @y_width.setter
+    def y_width(self, value):
+        self.specs['design_boundary'] = (self.specs['design_boundary'][0], value)
+        self.specs['bound_box'][3] = value
 
     def define_design_boundaries(self):
         if 'y_width' in self.specs.keys() or 'x_width' in self.specs.keys():
-            x_width = self.specs.get('x_width', None)
-            y_width = self.specs.get('y_width', None)
+            x_width = self.specs.get('x_width', 0)
+            y_width = self.specs.get('y_width', 0)
             if 'aspect_ratio' in self.specs.keys():
                 ar = self.specs['aspect_ratio']
                 if y_width and not x_width:
                     x_width = round(y_width / ar[1] * ar[0], 3)
                 elif x_width and not y_width:
-                    y_width = round(x_width / ar[1] * ar[0], 3)
+                    y_width = round(x_width / ar[0] * ar[1], 3)
                 else:
                     if self.specs['x_strictness'] == self.strictness_opt[0]:
                         x_width = round(y_width / ar[1] * ar[0], 3)
                     elif self.specs['y_strictness'] == self.strictness_opt[0]:
-                        y_width = round(x_width / ar[1] * ar[0], 3)
+                        y_width = round(x_width / ar[0] * ar[1], 3)
                     else:
                         raise ValueError(
                             "Cannot resolve aspect ratio with given x and y widths. \
@@ -103,13 +125,27 @@ class BBoxPHY(PHYDesign):
         self.specs = r_update(self.specs, self.pin_placer.specs)
 
     def place_pins(self):
-        self.pin_placer.place_pins()
+        print(f"Begin placement iteration {self.placement_iter}...")
+        exit_code = self.pin_placer.place_pins()
         self.pins = self.pin_placer.pins
         self.pg_pins = self.pin_placer.pg_pins
         self.pin_sides_dict = self.pin_placer.pin_sides_dict
         self.partitions = self.pin_placer.partitions
         self.phys_objs += self.pins
         self.phys_objs += self.pg_pins.values()
+        self.specs = r_update(self.specs, self.pin_placer.specs)
+        self.polygons['pins'] = self.pins
+        self.polygons['pg_pins'] = self.pg_pins
+        print(f"Pin placer finished with exit code {exit_code}")
+        if exit_code:
+            print("Pin placer finished unsuccessfully, redefining boundaries and trying again.")
+            self.placement_iter += 1
+            print("")
+            self.define_design_boundaries()
+            self.place_pins()
+        else:
+            print("Pin placement successful!")
+            print("")
 
     def build_design_repr(self):
         bbox_layers = []
@@ -120,8 +156,8 @@ class BBoxPHY(PHYDesign):
             'BBOX': PHYBBox(bbox_layers,
                             self.specs['internal_box'][0],
                             self.specs['internal_box'][1],
-                            self.bbox_x_width,
-                            self.bbox_y_width)}
+                            self.specs['internal_box'][2],
+                            self.specs['internal_box'][3])}
         self.polygons['bboxes'] = self.bboxes
         self.phys_objs.append(self.bboxes['BBOX'])
 
