@@ -45,7 +45,7 @@ class LIBBuilder:
 									'pins': [],
 									'pg_pins': []}],
 						 }
-		for pin_name, pin_dict in self.phy_obj.pins.items():
+		for pin_name, pin_dict in self.phy_obj.verilog_pin_dict.items():
 			pin_dict.update(self.specs['all_pins'])
 			pin_dict.update(self.specs.get(pin_name, {}))
 			if pin_dict['direction'] == 'output':
@@ -55,9 +55,9 @@ class LIBBuilder:
 			if 'related_ground_pin' not in pin_dict.keys():
 				pin_dict['related_ground_pin'] = pin_dict.pop('ground_pin')
 			lib_attr_dict['cells'][0]['pins'].append(pin_dict)
-		pg_pins = [{'name': self.phy_obj.power_pins['power_pin'],
+		pg_pins = [{'name': self.phy_obj.verilog_pg_pin_dict['power_pin'],
 					'pg_type': 'primary_power'},
-				   {'name': self.phy_obj.power_pins['ground_pin'],
+				   {'name': self.phy_obj.verilog_pg_pin_dict['ground_pin'],
 					'pg_type': 'primary_ground'},
 				   ]
 		lib_attr_dict['cells'][0]['pg_pins'] = pg_pins
