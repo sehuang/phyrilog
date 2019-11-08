@@ -10,6 +10,7 @@ from LIBBuilder import *
 from GDSBuilder import *
 from LEFBuilder import *
 from utilities import *
+import numpy as np
 
 class SRAMBBox:
     """This object is a wrapper for all the generators and views2 associated with a single SRAM BBox instance."""
@@ -18,6 +19,8 @@ class SRAMBBox:
         self.name = name
         self.per_word_bit_xwidth =  0.538 # This was determined arbitrarily.
         self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile)
+        self.layermapfile = layermapfile
+        self.cornerfile = cornerfile
         self.specs = {'pin_margin': True,
                       'site': 'coreSite',
                       'port_sides': {'input': 'left',
@@ -61,11 +64,6 @@ class SRAMBBox:
         self.specs = r_update(self.specs, self.pin_specs)
         self._get_xwidth_from_consts()
         self.phy = BBoxPHY(self.verilog_module, techfile, spec_dict=self.specs)
-        self.phy.place_pins()
-        self.lef_builder = BBoxLEFBuilder(self.phy, indent_char_width=2)
-        self.gds_builder = GDSDesign(self.phy, layermap_file=layermapfile)
-        self.gds_builder.add_polygons()
-        self.lib_builder = LIBBuilder(self.phy, corners=cornerfile)
 
         views_dir_path = pathlib.Path(os.path.abspath(views_dir))
         if not os.path.exists(views_dir_path):
@@ -81,6 +79,7 @@ class SRAMBBox:
             os.mkdir(self.lib_file_path)
 
     def build_lef(self, path=None):
+        self.lef_builder = BBoxLEFBuilder(self.phy, indent_char_width=2)
         if path:
             filepath = path
         else:
@@ -88,6 +87,8 @@ class SRAMBBox:
         self.lef_builder.write_lef(filename=filepath)
 
     def build_gds(self, path=None):
+        self.gds_builder = GDSDesign(self.phy, layermap_file=self.layermapfile)
+        self.gds_builder.add_polygons()
         if path:
             filepath = path
         else:
@@ -95,21 +96,48 @@ class SRAMBBox:
         self.gds_builder.write_gdsfile(filename=filepath)
 
     def build_lib(self, path=None):
+        self.lib_builder = LIBBuilder(self.phy, corners=self.cornerfile)
         if path:
             filepath = path
         else:
-            filepath = self.lib_file_path / (self.name + '.lib')
+            filepath = self.lib_file_path / (self.name + '_lib')
         self.lib_builder.write_lib(filepath)
 
     def build_all(self, lef_path=None, gds_path=None, lib_path=None):
+        print(f'Building {self.name} phy views...')
         self.build_lef(path=lef_path)
         self.build_gds(path=gds_path)
         self.build_lib(path=lib_path)
+        print("\n")
+
+    def build_all_xN(self, N, lef_path=None, gds_path=None, lib_path=None):
+        self.phy.scale(N)
+        self.name = self.name + f'_x{N}'
+        print(f'Building {self.name} phy views...')
+        self.build_lef(path=lef_path)
+        self.build_gds(path=gds_path)
+        self.build_lib(path=lib_path)
+        self.name = self.name[:-2]
+        self.phy.scale(1 / N)
+        print('\n')
 
     def _get_xwidth_from_consts(self):
-        word_length = self.verilog_module.params['wordLength']
+        word_length = int(self.verilog_module.params['wordLength'])
+        num_addr = int(self.verilog_module.params['numAddr'])
+        aratio_limit = 2.5
+        diff = 1
+        aratio = round(2 ** num_addr / word_length, 2)
+        if aratio > aratio_limit:
+            diff = int(np.ceil(aratio / aratio_limit))
+            aratio = aratio_limit
+
         xwidth = self.per_word_bit_xwidth * int(word_length)
-        self.specs['x_width'] = xwidth
+        self.specs['x_width'] = round(xwidth * diff, 3)
+        self.specs['aspect_ratio'] = [1, aratio * 0.5]
+        print(f'Xwidth: {round(xwidth * diff, 3)}')
+        print(f'Aspect Ratio: {aratio}')
+
+
 
 
 
@@ -198,15 +226,18 @@ class ASAP7SRAMs:
 
     def build_all_sram_views(self, sram_obj):
         sram_obj.build_all()
+        sram_obj.build_all_xN(4)
 
     def add_all_srams(self):
         for sram_name in self.srams_names:
+            print(f'Building {sram_name} PHYObject...')
             os.mkdir('tmp')
             self._get_relevant_lines(sram_name)
             os.chdir('tmp')
             self.make_sram_objs(sram_name)
             os.chdir('..')
             shutil.rmtree('tmp')
+            print("\n")
 
     def build_all_srams(self):
         for sram_obj in self.srams:
