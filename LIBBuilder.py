@@ -50,8 +50,10 @@ class LIBBuilder:
 			pin_dict.update(self.specs.get(pin_name, {}))
 			if pin_dict['direction'] == 'output':
 				pin_dict.update(self.specs['output_pins'])
-			pin_dict['related_power_pin'] = pin_dict.pop('power_pin')
-			pin_dict['related_ground_pin'] = pin_dict.pop('ground_pin')
+			if 'related_power_pin' not in pin_dict.keys():
+				pin_dict['related_power_pin'] = pin_dict.pop('power_pin')
+			if 'related_ground_pin' not in pin_dict.keys():
+				pin_dict['related_ground_pin'] = pin_dict.pop('ground_pin')
 			lib_attr_dict['cells'][0]['pins'].append(pin_dict)
 		pg_pins = [{'name': self.phy_obj.power_pins['power_pin'],
 					'pg_type': 'primary_power'},
