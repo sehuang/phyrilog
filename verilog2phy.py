@@ -2,9 +2,44 @@ import json
 import numpy as np
 
 class Rectangle:
-    """Represents a physical rectangle"""
+    """
+    Representation of a physical rectangle object.
+
+    Parameters
+    ----------
+    layer : str
+        Layout layer the rectangle exists on.
+    left_x : float
+        X-coordinate of left edge.
+    bot_y : float
+        Y-coordinate of bottom edge.
+    right_x : float
+        X-coordinate of right edge.
+    top_y : float
+        Y-coordinate of top edge.
+    orientation : {'horizontal', 'vertical'}
+        Orientation of the rectangle.
+    purpose : str
+        Layer purpose of the rectangle.
+
+    Attributes
+    ----------
+    centroid
+    center
+    layer : str
+        Layout layer the rectangle exists on.
+    coords : list[float]
+        Rectangle coordinates. List follows the format of [left_x, bot_y,
+        right_x, top_y].
+    purpose : str
+        Layer purpose of the rectangle.
+    orientation : {'horizontal', 'vertical'}
+        Orientation of the rectangle.
+
+    """
     def __init__(self, layer, left_x, bot_y, right_x, top_y, orientation=None, purpose=['drawing']):
         self.layer = layer
+        # Fixme: May want to change these rounding precisions to be a parameter
         self.coords = [round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]
         self.purpose = purpose
         self.orientation = orientation
@@ -15,10 +50,27 @@ class Rectangle:
 
     @property
     def centroid(self):
+        """
+        Centroid of the rectangle.
+        Returns
+        -------
+        tuple(float, float)
+            Coordinates of the rectangle's centroid.
+        """
         return (round((self.coords[0] + self.coords[2]) / 2, 3), round((self.coords[1] + self.coords[3]) / 2, 3))
 
     @property
     def center(self):
+        """
+        Center coordinate of the rectangle. Depending on the orientation,
+        this could be either the x or y coordinate
+
+        Returns
+        -------
+        float
+            Center of the rectangle on the relevant side depending on
+            orientation. If orientation not specified, returns the centroid.
+        """
         if self.orientation == 'horizontal':
             return self.centroid[1]
         elif self.orientation == 'vertical':
@@ -27,6 +79,29 @@ class Rectangle:
             return self.centroid
 
 class Label:
+    """
+    Representation of a physical label object.
+
+    Parameters
+    ----------
+    text : str
+        Text to be displayed on the label.
+    layer : str
+        Layout layer the label exists on.
+    postiion : list[float, float], tuple(float, float)
+        Coordinates for label location.
+    show : bool
+        True if label to actually be drawn. Default is True.
+
+    Attributes
+    ----------
+    text : str
+    purpose : str
+    layer : str
+    coords : list[float, float]
+    show : bool
+
+    """
     def __init__(self, text, layer, position, show=True):
         self.text = text
         self.purpose = ['label']
@@ -35,10 +110,42 @@ class Label:
         self.show = show
 
     def scale(self, scale_factor):
+        """
+        Scales location coordinates by given scale factor.
+
+        Parameters
+        ----------
+        scale_factor : float
+            Scaling factor to apply to coordinates.
+
+        Returns
+        -------
+
+        """
         coord_arr = np.asarray(self.coords) * scale_factor
         self.coords = coord_arr.tolist()
 
 class PHYObject:
+    """
+    Generic Physical Object class. Parent to all other complex physical
+    objects.
+
+    Parameters
+    ----------
+    name : str
+        Name of the object.
+
+    Attributes
+    ----------
+    name : str
+        Name of the object.
+    purpose : str
+        Layer purpose of the object.
+    phys_objs : list
+        List of Primitive physical objects or Generic physical objects
+        that ths object contains.
+    rects : dict
+    """
     def __init__(self, name):
         self.name = name
         self.purpose = None
@@ -46,17 +153,42 @@ class PHYObject:
         self.rects = {}
 
     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['drawing']):
+        """
+        Adds a Rectangle object to the list of child objects.
+
+        Parameters
+        ----------
+        layer : str
+        left_x : float
+            X-coordinate of the left edge.
+        bot_y : float
+            Y-coordinate of the bottom edge.
+        right_x : float
+            X-coordinate of the right edge.
+        top_y : float
+            Y-coordinate of the top edge.
+        purpose : str
+            Layer purpose of the Rectangle.
+
+        Returns
+        -------
+
+        """
         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
         self.phys_objs.append(rect_obj)
         self.rects[rect_obj.centroid] = rect_obj
 
-    # self.phys_map[layer]['shape'] = 'RECT'
-
-    def write_lef_block(self):
-        pass
-
 
 class PHYPortPin(PHYObject):
+    """
+    Port Pin PHYObject.
+
+    Parameters
+    ----------
+
+    Attributes
+    ----------
+    """
     def __init__(self, pin_dict, layer, side, x_width, y_width, center=None, bus_idx=None):
         super().__init__(None)
 
