@@ -2,6 +2,21 @@ import re
 import operator
 import ast
 import json
+from resources.astpp import parseprint
+
+class NameLookup(ast.NodeTransformer):
+    """NodeTransformer object that replaces all variables in bus index expressions with a corresponding param dictionary
+    lookup"""
+
+    def visit_Name(self, node):
+        return ast.copy_location(ast.Subscript(
+            value=ast.Attribute(value=ast.Name(
+                id='self', ctx=ast.Load()),
+            attr='params', ctx=ast.Load()),
+            slice=ast.Index(value=ast.Str(s=node.id), ctx=ast.Load()),
+            ctx=ast.Load()
+        ), node)
+
 
 class VerilogModule:
     """Python Object representing a Verilog Module. This will just contain Pins"""
@@ -108,41 +123,19 @@ class VerilogModule:
                 if parts[0] == '`define':
                     param_name = parts[1]
                     param_val = parts[-1]
-                    self.params[param_name] = param_val
+                    if param_val.isnumeric():
+                        self.params[param_name] = int(param_val)
 
         return pins_str[pins_str.index(params_str) + len(params_str):]
 
     def _eval_param_op(self, string):
-        """Evaluates operation for bus indices when netlist uses parameters. This method
-        recurs until it runs out of string to try evaluating"""
+        """Evaluates operation for bus indices when netlist uses parameters using Abstract Syntax Tree code evaluation."""
 
-		clean_exp = re.findall(r"[^`]", string)[0]
-
-        # left_exp = re.findall(r"[\S]+(?=(?:[\s]*[+\-*/]))", string)
-        # if len(left_exp) == 0:
-        #     raise KeyError(f"Parameter {string} not defined.")
-        # left_exp = re.findall(r"[^`]+", left_exp[0]) 			# get rid of tick
-        # right_exp = re.findall(r"(?<=[+\-*/])[\s]*[\S]+", string)
-        # if len(right_exp) == 0:
-        #     raise KeyError(f"Parameter {string} not defined.")
-        # right_exp = re.findall(r"[\S]+", right_exp[0])
-        # operator = re.findall(r"[+\-*/]", string)[0]
-        # if len(left_exp) == 0 or len(right_exp) == 0:
-        #     raise KeyError(f"Parameter {string} not defined.")
-        # else:
-        #     left_exp = left_exp[0]
-        #     right_exp = right_exp[0]
-        # try:
-        #     left_exp = self.params[left_exp] if not left_exp.isdigit() else left_exp
-        # except KeyError: # This might itself be another operation!
-        #     left_exp = self._eval_param_op(left_exp)
-        # try:
-        #     right_exp = self.params[right_exp] if not right_exp.isdigit() else right_exp
-        # except KeyError: # This might itself be another operation!
-        #     right_exp = self._eval_param_op(right_exp)
-        # index = self.op_lut[operator](int(left_exp), int(right_exp))
-        # return index
-
+        clean_exp = re.findall(r"[^`\n]+", string)[0]
+        expr_ast = ast.parse(clean_exp, mode='eval')
+        NameLookup().visit(expr_ast)
+        ast.fix_missing_locations(expr_ast)
+        return eval(compile(expr_ast, filename='<ast>>', mode='eval'))
 
     def _bus_parser(self, bus_idx):
         """Parses bus indices from [X:Y] string. This method can handle non-numeric
