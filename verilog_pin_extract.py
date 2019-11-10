@@ -135,7 +135,7 @@ class VerilogModule:
         expr_ast = ast.parse(clean_exp, mode='eval')
         NameLookup().visit(expr_ast)
         ast.fix_missing_locations(expr_ast)
-        return eval(compile(expr_ast, filename='<ast>>', mode='eval'))
+        return eval(compile(expr_ast, filename='<ast>', mode='eval'))
 
     def _bus_parser(self, bus_idx):
         """Parses bus indices from [X:Y] string. This method can handle non-numeric
