@@ -19,7 +19,51 @@ class NameLookup(ast.NodeTransformer):
 
 
 class VerilogModule:
-    """Python Object representing a Verilog Module. This will just contain Pins"""
+    """Python Object representing a Verilog Module. This will just contain
+    Pins
+
+    Parameters
+    ----------
+    top : str
+        The name of the top-level Verilog module that this object will
+        represent
+
+    VDD : str, optional
+        The related power pin of all pins in the design. Default is 'VDD'.
+
+    VSS : str, optional
+        The related ground pin of all pins in the design. Default is 'VSS'.
+
+    filename : str, Path
+        The Verilog file name or absolute path.
+
+    constfile : str, Path, optional
+        The constants header file name or absolute path.
+
+
+    Attributes
+    ----------
+    name : str
+        Name of the Verilog Module. Same as top.
+
+    pins : dict
+        Dictionary of pin descriptor dictionaries. Keys are pin names,
+        values are the dictionaries.
+
+    params : dict
+        Dictionary of all extracted parameter values from either the
+        constants file or the parameter definition block in the Verilog
+        module. Keys are names of parameters, values are parameter values.
+
+    power_pins : dict
+        Special dictionary containing the related power and ground pin
+        names.
+
+    ports_json_dict : dict
+        Dictionary describing all ports of the Verilog module. This is
+        passed to the dotlibber.
+
+    """
 
     def __init__(self, top, VDD='VDD', VSS='VSS', filename=None, constfile=None):
         with open(filename, 'r') as file:
@@ -33,10 +77,6 @@ class VerilogModule:
         self.name = top
         self.pins = {}
         self.params = {}
-        self.op_lut = {"+": operator.add,
-                       "-": operator.sub,
-                       "*": operator.mul,
-                       "/": operator.floordiv}
 
         top_line_no = self._get_top_module_line_no(line_list, top)
         pin_def_list = self._get_pin_def_list(line_list, top_line_no)
@@ -51,7 +91,24 @@ class VerilogModule:
                                 'pins': self.pins}
 
     def _get_top_module_line_no(self, line_list, top):
-        """Finds the beginning of the module definition."""
+        """Finds the beginning of the module definition.
+
+        Parameters
+        ----------
+        line_list : list[str]
+            List of lines in the Verilog file.
+
+        top : str
+            Name of the top-level Verilog module.
+
+        Returns
+        -------
+        top_line_no : int
+            Index in the file line list of the line containing the
+            top-level Verilog module definition (i.e. the line containing
+            "module <top>")
+
+        """
 
         checkstr = "module " + top
         for line in line_list:
@@ -95,6 +152,24 @@ class VerilogModule:
         return new_line_list
 
     def _check_for_definitions(self, pin_def_list, top_line_no, line_list):
+        """
+        Do a preliminary check for input/output definitions in the module
+        definition.
+
+        Parameters
+        ----------
+        pin_def_list : list[str]
+            List of lines that contain the port declarations.
+
+        top_line_no : int
+            Index in the file line list of the line containing the
+            top-level Verilog module definition (i.e. the line containing
+            "module <top>")
+
+        line_list : list[str]
+            List of lines in the Verilog file.
+
+        """
         input_check = ['input' in line for line in pin_def_list]
         output_check = ['output' in line for line in pin_def_list]
         if any(input_check) or any(output_check):
@@ -103,8 +178,24 @@ class VerilogModule:
             self._parse_ports_in_body(top_line_no, line_list)
 
     def _get_params_and_values(self, pins_str):
-        """Extracts parameter definitions from string and compiles parameter dictionary.
-        Also extracts constants from Verilog header files."""
+        """
+        Extracts parameter definitions from string and compiles
+        parameter dictionary. Also extracts constants from Verilog header
+        files.
+
+        Parameters
+        ----------
+        pins_str : str
+            Joined string containing all port declarations and parameter
+            definitions.
+
+        Returns
+        -------
+        str
+            String with only the port direction definitions (parameter
+            definitions removed)
+
+        """
 
         params_str = re.findall(r"(?<=#\().*(?=\)[\s]*\()", pins_str)
         if len(params_str) > 0:
@@ -129,7 +220,19 @@ class VerilogModule:
         return pins_str[pins_str.index(params_str) + len(params_str):]
 
     def _eval_param_op(self, string):
-        """Evaluates operation for bus indices when netlist uses parameters using Abstract Syntax Tree code evaluation."""
+        """Evaluates operation for bus indices when netlist uses parameters using Abstract Syntax Tree code evaluation.
+
+        Parameters
+        ----------
+        string : str
+            Operation string to be evaluated.
+
+        Returns
+        -------
+        int
+           Evaluated result of operation string.
+
+        """
 
         clean_exp = re.findall(r"[^`\n]+", string)
         clean_exp = "".join(clean_exp)
@@ -139,8 +242,23 @@ class VerilogModule:
         return int(eval(compile(expr_ast, filename='<ast>', mode='eval')))
 
     def _bus_parser(self, bus_idx):
-        """Parses bus indices from [X:Y] string. This method can handle non-numeric
-        index definitions."""
+        """Parses bus indices from [X:Y] string. This method can handle
+        non-numeric index definitions.
+
+        Parameters
+        ----------
+        bus_idx : str
+            Bus index definition string. This string takes the format
+            "[X:Y]" where X and Y are either numeric values or parametrized
+             expressions to be evaluated.
+
+        Returns
+        -------
+        bus_lim_dict : dict
+            Dictionary of bus parameters to be added to the pin descriptor
+            dictionary.
+
+        """
 
         limits = bus_idx[1:-1].split(":")
         if not limits[0].isdigit():
@@ -164,7 +282,18 @@ class VerilogModule:
         return bus_lim_dict
 
     def _parse_pin_def_list(self, pin_def_list):
-        """Extracts pin list from string and compiles pin dictionary."""
+        """Extracts pin list from module definition. This method only works
+        if the ports are defined in the module definition.
+
+        Parameters
+        ----------
+        pin_def_list : list[str]
+            List of lines containing port definitions.
+
+        Returns
+        -------
+
+        """
 
         if len(pin_def_list) == 1:
             pins_str = pin_def_list[0]
@@ -206,6 +335,23 @@ class VerilogModule:
                 self.pins[name] = pin_info
 
     def _parse_ports_in_body(self, top_line_no, line_list):
+        """Parse Verilog module body for port definitions. This method is
+        invoked if the module definition does not contain port definitions.
+
+        Parameters
+        ----------
+        top_line_no : int
+            Index in the file line list of the line containing the
+            top-level Verilog module definition (i.e. the line containing
+            "module <top>")
+
+        line_list : list[str]
+            List of lines in Verilog module file.
+
+        Returns
+        -------
+
+        """
         use_line_list = line_list[top_line_no:]
         pin_def_list = self._get_pin_def_list(line_list, top_line_no)
         if len(pin_def_list) == 1:
@@ -253,6 +399,24 @@ class VerilogModule:
                 self.pins[name] = pin_info
 
     def write_pin_json(self, filename, pin_specs):
+        """Serializes self.pins to a JSON file.
+
+        .. deprecated:: 0.9
+            'write_pin_json' will be deprecated since this method is
+            redundant to self.ports_json_dict
+
+        Parameters
+        ----------
+        filename : str, Path
+            Filename or absolute path to the output JSON.
+
+        pin_specs : dict
+            Dictionary of pin specifications
+
+        Returns
+        -------
+
+        """
         json_dict = {'name': self.name,
                      'revision': 0,
                      'cells': [{'name': self.name,
