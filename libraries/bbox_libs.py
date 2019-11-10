@@ -83,14 +83,14 @@ class BBoxPHY(PHYDesign):
                             "Cannot resolve aspect ratio with given x and y widths. \
                             Please relax the definition or strictness for a dimension.")
 
-            if x_width < self.pin_placer.min_x_dim:
-                if self.specs['x_strictness'] == self.strictness_opt[1]:
-                    raise ValueError(
-                        f'Given x width {x_width} is less than minimum x width \
-                        {self.pin_placer.min_x_dim} needed to successfully place pins.\
-                         Please adjust dimension or relax x strictness.')
-                else:
-                    x_width = self.pin_placer.min_x_dim
+                if x_width < self.pin_placer.min_x_dim:
+                    if self.specs['x_strictness'] == self.strictness_opt[1]:
+                        raise ValueError(
+                            f'Given x width {x_width} is less than minimum x width \
+                            {self.pin_placer.min_x_dim} needed to successfully place pins.\
+                             Please adjust dimension or relax x strictness.')
+                    else:
+                        x_width = self.pin_placer.min_x_dim
             if y_width < self.pin_placer.min_y_dim:
                 if self.specs['y_strictness'] == self.strictness_opt[1]:
                     raise ValueError(
@@ -184,7 +184,7 @@ class BBoxLEFBuilder(LEFBuilder):
         self.lines += '\n'
 
         # Macro lines
-        macro_lines = [class_line, origin_line, foreign_line, size_line, sym_line]
+        macro_lines = [class_line, origin_line, foreign_line, size_line, sym_line, site_line]
 
         macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
         if add_pg_pins:

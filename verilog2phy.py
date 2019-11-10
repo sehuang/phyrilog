@@ -68,6 +68,8 @@ class PHYPortPin(PHYObject):
         self.x_width = x_width
         self.y_width = y_width
         self.center = center
+        self.related_power_pin = pin_dict.get('power_pin', None)
+        self.related_ground_pin = pin_dict.get('ground_pin', None)
         # self.is_bus = pin_dict.get("is_bus", False)
         if isinstance(bus_idx, int):
             self.bus_idx = bus_idx
