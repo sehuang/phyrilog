@@ -131,11 +131,12 @@ class VerilogModule:
     def _eval_param_op(self, string):
         """Evaluates operation for bus indices when netlist uses parameters using Abstract Syntax Tree code evaluation."""
 
-        clean_exp = re.findall(r"[^`\n]+", string)[0]
+        clean_exp = re.findall(r"[^`\n]+", string)
+        clean_exp = "".join(clean_exp)
         expr_ast = ast.parse(clean_exp, mode='eval')
         NameLookup().visit(expr_ast)
         ast.fix_missing_locations(expr_ast)
-        return eval(compile(expr_ast, filename='<ast>', mode='eval'))
+        return int(eval(compile(expr_ast, filename='<ast>', mode='eval')))
 
     def _bus_parser(self, bus_idx):
         """Parses bus indices from [X:Y] string. This method can handle non-numeric
