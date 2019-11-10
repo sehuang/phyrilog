@@ -129,7 +129,20 @@ class VerilogModule:
         return pin_def_list
 
     def _strip_comments(self, line_list):
-        """Removes comments from lines."""
+        """
+        Removes comments and empty lines from line list.
+
+        Parameters
+        ----------
+        line_list : list[str]
+            List of lines in the Verilog file.
+
+        Returns
+        -------
+        new_line_list : list[str]
+            List of lines with comments and empty lines removed.
+
+        """
         new_line_list = []
         multiline_comment = False
         for line in line_list:
