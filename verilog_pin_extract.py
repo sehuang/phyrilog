@@ -233,7 +233,8 @@ class VerilogModule:
         return pins_str[pins_str.index(params_str) + len(params_str):]
 
     def _eval_param_op(self, string):
-        """Evaluates operation for bus indices when netlist uses parameters using Abstract Syntax Tree code evaluation.
+        """Evaluates bus index expression using Abstract Syntax Tree code
+         evaluation.
 
         Parameters
         ----------
