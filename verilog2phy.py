@@ -348,7 +348,7 @@ class PHYBBox(PHYObject):
     """
     def __init__(self, layers, left_x, bot_y, x_width, y_width):
         super().__init__("BBOX")
-        self.purpose = 'blockage'
+        self.purpose = ['blockage']
         for layer in layers:
             self.add_rect(layer, left_x, bot_y, left_x + x_width,
                              bot_y + y_width, self.purpose)
