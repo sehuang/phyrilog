@@ -18,6 +18,7 @@ class SRAMBBox:
     def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir):
         self.name = name
         self.per_word_bit_xwidth =  0.538 # This was determined arbitrarily.
+        self.per_word_bit_xwidth =  0.119 # This was determined arbitrarily.
         self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile)
         self.layermapfile = layermapfile
         self.cornerfile = cornerfile
@@ -62,7 +63,11 @@ class SRAMBBox:
                               },
                           },}
         self.specs = r_update(self.specs, self.pin_specs)
-        self._get_xwidth_from_consts()
+        if 'wordLength' not in self.verilog_module.params.keys() \
+                or 'numAddr' not in self.verilog_module.params.keys():
+            self._get_xwidth_from_name()
+        else:
+            self._get_xwidth_from_consts()
         self.phy = BBoxPHY(self.verilog_module, techfile, spec_dict=self.specs)
 
         views_dir_path = pathlib.Path(os.path.abspath(views_dir))
@@ -110,13 +115,14 @@ class SRAMBBox:
         self.build_lib(path=lib_path)
         print("\n")
 
-    def build_all_xN(self, N, lef_path=None, gds_path=None, lib_path=None):
+    def build_all_xN(self, N, lef_path=None, gds_path=None, lib_path=None, build_lib=False):
         self.phy.scale(N)
         self.name = self.name + f'_x{N}'
         print(f'Building {self.name} phy views...')
         self.build_lef(path=lef_path)
         self.build_gds(path=gds_path)
-        self.build_lib(path=lib_path)
+        if build_lib:
+            self.build_lib(path=lib_path)
         self.name = self.name[:-2]
         self.phy.scale(1 / N)
         print('\n')
@@ -137,14 +143,20 @@ class SRAMBBox:
         print(f'Xwidth: {round(xwidth * diff, 3)}')
         print(f'Aspect Ratio: {aratio}')
 
-
+    def _get_xwidth_from_name(self):
+        num_locs = re.search(r"[\d]+(?=x)", self.name)[0]
+        word_len = re.search(r"(?<=x)[\d]+", self.name)[0]
+        num_addr = str(int(np.log2(int(num_locs))))
+        self.verilog_module.params['wordLength'] = word_len
+        self.verilog_module.params['numAddr'] = str(num_addr)
+        self._get_xwidth_from_consts()
 
 
 
 class ASAP7SRAMs:
-    """This class is a container for all the ASAP7 SRAM black box views2."""
+    """This class is a container for all the ASAP7 SRAM black box views."""
 
-    def __init__(self, behav_file, project_dir, hammer_dir, listfile=None):
+    def __init__(self, behav_file, project_dir, hammer_dir, listfile=None, search=None):
 
         self.project_dir = project_dir
         self.layermapfile = project_dir / 'resources/asap7_TechLib.layermap'
@@ -152,6 +164,8 @@ class ASAP7SRAMs:
         self.cornerfile = project_dir / 'resources/asap7_lib_corners.json'
 
         self.sramlist = SRAMList(behav_file, listfile)
+        if search:
+            self.sramlist.search(search)
         self.srams_names = self.sramlist.srams
         self.srams = []
         with open(behav_file, 'r') as file:
@@ -166,20 +180,35 @@ class ASAP7SRAMs:
         """Removes comments from lines."""
         new_line_list = []
         multiline_comment = False
+
+        # Precompile RegEx patterns
+        slineA = re.compile("//")
+        slineB = re.compile("/\*[\w\W]+\*/")
+        mline_begin = re.compile("/\*")
+        mline_end =  re.compile("\*/")
+        empty = re.compile("(?![\s\S])")
+
+        # Line-by-line Comment Filter
         for line in line_list:
-            if re.search("//", line):   # Kill single line comment
+            # Remove single line comment
+            if re.search(slineA, line):
                 continue
-            elif re.match("/\*[\w\W]+\*/", line):   # Kill single line comment defined with /* */
+            # Remove single line comment defined with /* ... */ syntax
+            elif re.match(slineB, line):
                 continue
-            elif re.search("/\*", line):    # Get and kill multiline comment beginning
+            # Remove first line of multiline comment and begin tracking
+            elif re.search(mline_begin, line):
                 multiline_comment = True
                 continue
-            elif multiline_comment and not re.search("\*/", line):  # Still in multiline comment
+            # Remove lines that are in the body of the multiline comment
+            elif multiline_comment and not re.search(mline_end, line):
                 continue
-            elif re.search("\*/", line):    # Check for end of multiline comment
+            # Remove last line of multiline commend and stop tracking
+            elif re.search(mline_end, line):
                 multiline_comment = False
                 continue
-            elif re.match("(?![\s\S])", line):  # Check for empty line
+            # Remove empty lines
+            elif re.match(empty, line):
                 continue
             else:
                 new_line_list.append(line)
@@ -201,12 +230,12 @@ class ASAP7SRAMs:
             idx += -1
             line = self.line_list[idx]
         module_block = []
-        idx = top_line - 1
+        idx = top_line
         line = self.line_list[idx]
         while line != 'endmodule':
-            idx += 1
             line = self.line_list[idx]
             module_block.append(line)
+            idx += 1
         self.modulefile = "temp_module_file.v"
         with open(self.modulefile, "w+") as modulefile:
             for line in module_block:
