@@ -2,9 +2,44 @@ import json
 import numpy as np
 
 class Rectangle:
-    """Represents a physical rectangle"""
+    """
+    Representation of a physical rectangle object.
+
+    Parameters
+    ----------
+    layer : str
+        Layout layer the rectangle exists on.
+    left_x : float
+        X-coordinate of left edge.
+    bot_y : float
+        Y-coordinate of bottom edge.
+    right_x : float
+        X-coordinate of right edge.
+    top_y : float
+        Y-coordinate of top edge.
+    orientation : {'horizontal', 'vertical'}
+        Orientation of the rectangle.
+    purpose : str
+        Layer purpose of the rectangle.
+
+    Attributes
+    ----------
+    centroid
+    center
+    layer : str
+        Layout layer the rectangle exists on.
+    coords : list[float]
+        Rectangle coordinates. List follows the format of [left_x, bot_y,
+        right_x, top_y].
+    purpose : str
+        Layer purpose of the rectangle.
+    orientation : {'horizontal', 'vertical'}
+        Orientation of the rectangle.
+
+    """
     def __init__(self, layer, left_x, bot_y, right_x, top_y, orientation=None, purpose=['drawing']):
         self.layer = layer
+        # Fixme: May want to change these rounding precisions to be a parameter
         self.coords = [round(left_x, 3), round(bot_y, 3), round(right_x, 3), round(top_y, 3)]
         self.purpose = purpose
         self.orientation = orientation
@@ -15,10 +50,27 @@ class Rectangle:
 
     @property
     def centroid(self):
+        """
+        Centroid of the rectangle.
+        Returns
+        -------
+        tuple(float, float)
+            Coordinates of the rectangle's centroid.
+        """
         return (round((self.coords[0] + self.coords[2]) / 2, 3), round((self.coords[1] + self.coords[3]) / 2, 3))
 
     @property
     def center(self):
+        """
+        Center coordinate of the rectangle. Depending on the orientation,
+        this could be either the x or y coordinate
+
+        Returns
+        -------
+        float
+            Center of the rectangle on the relevant side depending on
+            orientation. If orientation not specified, returns the centroid.
+        """
         if self.orientation == 'horizontal':
             return self.centroid[1]
         elif self.orientation == 'vertical':
@@ -27,6 +79,29 @@ class Rectangle:
             return self.centroid
 
 class Label:
+    """
+    Representation of a physical label object.
+
+    Parameters
+    ----------
+    text : str
+        Text to be displayed on the label.
+    layer : str
+        Layout layer the label exists on.
+    postiion : list[float, float], tuple(float, float)
+        Coordinates for label location.
+    show : bool
+        True if label to actually be drawn. Default is True.
+
+    Attributes
+    ----------
+    text : str
+    purpose : str
+    layer : str
+    coords : list[float, float]
+    show : bool
+
+    """
     def __init__(self, text, layer, position, show=True):
         self.text = text
         self.purpose = ['label']
@@ -35,10 +110,43 @@ class Label:
         self.show = show
 
     def scale(self, scale_factor):
+        """
+        Scales location coordinates by given scale factor.
+
+        Parameters
+        ----------
+        scale_factor : float
+            Scaling factor to apply to coordinates.
+
+        Returns
+        -------
+
+        """
         coord_arr = np.asarray(self.coords) * scale_factor
         self.coords = coord_arr.tolist()
 
 class PHYObject:
+    """
+    Generic Physical Object class. Parent to all other complex physical
+    objects.
+
+    Parameters
+    ----------
+    name : str
+        Name of the object.
+
+    Attributes
+    ----------
+    name : str
+        Name of the object.
+    purpose : str
+        Layer purpose of the object.
+    phys_objs : list
+        List of Primitive physical objects or Generic physical objects
+        that ths object contains.
+    rects : dict
+        Dictionary of Rectangle objects. Keyed by center coordinate value.
+    """
     def __init__(self, name):
         self.name = name
         self.purpose = None
@@ -46,28 +154,119 @@ class PHYObject:
         self.rects = {}
 
     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['drawing']):
+        """
+        Adds a Rectangle object to the list of child objects.
+
+        Parameters
+        ----------
+        layer : str
+        left_x : float
+            X-coordinate of the left edge.
+        bot_y : float
+            Y-coordinate of the bottom edge.
+        right_x : float
+            X-coordinate of the right edge.
+        top_y : float
+            Y-coordinate of the top edge.
+        purpose : str
+            Layer purpose of the Rectangle.
+
+        Returns
+        -------
+
+        """
         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
         self.phys_objs.append(rect_obj)
         self.rects[rect_obj.centroid] = rect_obj
 
-    # self.phys_map[layer]['shape'] = 'RECT'
+    def scale(self, scale_factor):
+        """
+        Scales all objects associated with Pin by scale factor.
 
-    def write_lef_block(self):
-        pass
+        Parameters
+        ----------
+        scale_factor : float
+            Factor by which to scale all physical objects in this Pin.
+
+        Returns
+        -------
+
+        """
+        for phy_obj in self.phys_objs:
+            phy_obj.scale(scale_factor)
 
 
 class PHYPortPin(PHYObject):
+    """
+    Port Pin PHYObject.
+
+    Parameters
+    ----------
+    pin_dict : dict
+        Pin descriptor dictionary. This dictionary will contain all the
+        relevant information regarding the pin direction, related power/
+        ground pins, and pin name.
+    layer : str
+        Layer the Pin object exists on.
+    side : str
+        Side of the design that the pin should exist on.
+    x_width : float
+        X dimension width of the pin shape.
+    y_width : float
+        Y dimension width of the pin shape.
+    center : float, optional
+        Center coordinate of the pin. Whether this is an X or Y coordinate
+        depends on side. This option actually doesn't serve any purpose.
+    bus_idx : int, optional
+        Index of bus element that this pin represents. This is only needed
+        if the pin is part of a bus. This index is appended onto the name
+        of the pin for labeling.
+
+    Attributes
+    ----------
+    pin_dict : dict
+        Pin descriptor dictionary. This dictionary will contain all the
+        relevant information regarding the pin direction, related power/
+        ground pins, and pin name.
+    name : str
+        Name of the pin.
+    direction : {'input', 'output', 'inout'}
+        Port direction of pin.
+    layer : str
+        Layer the Pin object exists on.
+    side : str
+        Side of the design that the pin should exist on.
+    x_width : float
+        X dimension width of the pin shape.
+    y_width : float
+        Y dimension width of the pin shape.
+    center : float
+        Center coordinate of the pin.
+    related_power_pin : str
+        Name of the related power pin to this pin.
+    related_ground_pin : str
+        Name of the related ground pin to this pin.
+    bus_idx : int
+        Index of bus element that this pin represents. This is only needed
+        if the pin is part of a bus. This index is appended onto the name
+        of the pin for labeling.
+    block_structure : dict
+        This attribute is not used.
+    labels : list[Label]
+        List of Label objects associated with this pin object.
+    """
     def __init__(self, pin_dict, layer, side, x_width, y_width, center=None, bus_idx=None):
-        super().__init__(None)
+        super().__init__(pin_dict['name'])
 
         self.pin_dict = pin_dict
-        self.name = pin_dict['name']
         self.direction = pin_dict['direction']
         self.layer = layer
         self.side = side
         self.x_width = x_width
         self.y_width = y_width
         self.center = center
+        self.related_power_pin = pin_dict.get('power_pin', None)
+        self.related_ground_pin = pin_dict.get('ground_pin', None)
         # self.is_bus = pin_dict.get("is_bus", False)
         if isinstance(bus_idx, int):
             self.bus_idx = bus_idx
@@ -76,41 +275,111 @@ class PHYPortPin(PHYObject):
         self.labels = []
 
     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['drawing', 'pin']):
+        """
+        Adds a Rectangle object to list of objects. This is different from
+        parent method add_rect in that this method calculates upper right
+        coordinate from x/y width attributes.
+
+        Parameters
+        ----------
+        layer : str
+            Layout layer the Rectangle exists on.
+        left_x : float
+            X-coordinate of the left edge.
+        bot_y : float
+            Y-coordinate of the bottom edge.
+        right_x : float
+            X-coordinate of the right edge.
+        top_y : float
+            Y-coordinate of the top edge.
+        purpose : str
+            Layer purpose of the Rectangle.
+
+        Returns
+        -------
+
+        """
         right_x = left_x + self.x_width
         top_y = bot_y + self.y_width
         orientation = 'horizontal' if self.side in ['left', 'right'] else 'vertical'
         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, orientation, purpose=purpose)
-        self.phys_objs.append(rect_obj)
-        self.rects[rect_obj.center] = rect_obj
-        self.add_label(layer, ((right_x + left_x) / 2, (top_y + bot_y) / 2))
+        if rect_obj.center not in self.rects.keys():
+            self.phys_objs.append(rect_obj)
+            self.rects[rect_obj.center] = rect_obj
+            self.add_label(layer, ((right_x + left_x) / 2, (top_y + bot_y) / 2))
 
     def add_label(self, layer, position):
+        """
+        Adds a Label object to the pin.
+
+        Parameters
+        ----------
+        layer : str
+            Layout layer the Label exists on.
+        position : list[float, float], tuple(float, float)
+            Coordinates of the Label object.
+
+        Returns
+        -------
+
+        """
         label_obj = Label(self.name, layer, position, show=True)
         self.phys_objs.append(label_obj)
         self.labels.append(label_obj)
 
-    def scale(self, scale_factor):
-        for rect in self.phys_objs:
-            rect.scale(scale_factor)
 
 class PHYBBox(PHYObject):
+    """
+    Black-box PHYObject.
+
+    Parameters
+    ----------
+    layers : list[str]
+        List of layer names for which the black-box should exist on.
+    left_x : float
+        Left-side x-coordinate.
+    bot_y : float
+        Bottom-side x-coordinate.
+    x_width : float
+        X-dimension width of design.
+    y_width : float
+        Y-dimension width of design.
+
+    """
     def __init__(self, layers, left_x, bot_y, x_width, y_width):
         super().__init__("BBOX")
         self.purpose = 'blockage'
         for layer in layers:
-            self.add_rect(layer, left_x, bot_y, left_x + x_width, bot_y + y_width)
-
-    def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
-        rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
-        self.phys_objs.append(rect_obj)
-        self.rects[rect_obj.centroid] = rect_obj
-
-    def scale(self, scale_factor):
-        for rect in self.phys_objs:
-            rect.scale(scale_factor)
+            self.add_rect(layer, left_x, bot_y, left_x + x_width,
+                             bot_y + y_width, self.purpose)
 
 class PHYDesign:
-    """Python representation of a PHY Design. Right now this just consumes VerilogModules"""
+    """Python representation of a PHY Design. Right now this just consumes
+    VerilogModules.
+
+    Parameters
+    ----------
+    verilog_module : VerilogModule
+        VerilogModule object that will be processed into a PHYDesign.
+    techfile : str, Path
+        Path to the tech.json for the technology the PHYDesign is to be
+        made in.
+    spec_dict : dict
+        Dictionary of options and specifications for the design. Please
+        consult spec_dict_schema.yaml for an example of the spec_dict
+        schema.
+
+    Attributes
+    ----------
+    verilog_pin_dict : dict
+    verilog_pg_pin_dict : dict
+    name : str
+    spec_dict : dict
+    pins : list[PHYPortPin]
+    pg_pins :
+
+
+    """
 
     def __init__(self, verilog_module, techfile, spec_dict=None):
         self.verilog_pin_dict = verilog_module.pins
@@ -127,8 +396,8 @@ class PHYDesign:
             raise ValueError(f"Unrecognized File Type .{filetype}")
 
         self.spec_dict = spec_dict
-        self.pins = {}
-        self.pg_pins = {}
+        self.pins = []
+        self.pg_pins = []
         self.phys_objs = []
         self.defaults = {'origin': [0, 0],
                          'units': 1e-6,
@@ -138,6 +407,8 @@ class PHYDesign:
                          'pin_margin': False,
                          'symmetry': 'X Y',
                          'site': 'core',
+                         'design_boundary' : (10,10),
+                         'bound_box': [0, 0, 10, 10],
                          'pins': {'h_layer': "M2",
                                   'v_layer': "M3",
                                   'pin_length': 1
@@ -169,6 +440,15 @@ class PHYDesign:
             self.metals[layer['name']] = layer
 
     def add_pg_pin_objects(self):
+        """
+
+        ..deprecated : 0.9
+            This method has been superceded by the pin placer.
+
+        Returns
+        -------
+
+        """
         power_pin_name = self.verilog_pg_pin_dict['power_pin']
         ground_pin_name = self.verilog_pg_pin_dict['ground_pin']
         pg_pin_specs = self.specs['pg_pins']
@@ -277,168 +557,3 @@ class PHYDesign:
         self.x_width = round(self.x_width * scale_factor, 3)
         self.y_width = round(self.y_width * scale_factor, 3)
 
-
-class BBoxPHY(PHYDesign):
-    """Black-boxed LEF object. This class describes LEF stuff"""
-
-    # def __init__(self, verilog_module, techfile: str, xwidth=None, ywidth=None,
-    # 			 aspect_ratio=[1, 1], spec_dict=None):
-    def __init__(self, verilog_module, techfile, spec_dict=None):
-        super().__init__(verilog_module, techfile, spec_dict)
-
-        # self.add_pin_objects()
-        # self.add_pg_pin_objects()
-        self.define_design_boundaries()
-        self.build_design_repr()
-
-    def define_design_boundaries(self):
-        if self.x_width:
-            x_width = self.x_width
-        elif self.y_width:
-            x_width = self.y_width * self.aspect_ratio[1] / self.aspect_ratio[0]
-        else:
-            x_width = None  # Wait until later to figure this out
-
-        if self.y_width:
-            y_width = self.y_width
-        elif self.x_width:
-            y_width = self.x_width * self.aspect_ratio[0] / self.aspect_ratio[1]
-        else:
-            y_width = None  # Wait until later to figure this out
-
-        self.pin_sides_dict = {'left': [],
-                               'right': [],
-                               'top': [],
-                               'bottom': []}
-        for pin in self.pins.values():
-            self.pin_sides_dict[pin.side].append(pin)
-        for pg_pin in self.pg_pins.values():
-            self.pin_sides_dict[pg_pin.side].append(pg_pin)
-        min_h_pins = max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right']))
-        min_v_pins = max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom']))
-
-        h_pin_width = self.metals[self.specs['pins']['h_layer']]['min_width']
-        v_pin_width = self.metals[self.specs['pins']['v_layer']]['min_width']
-        h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch']
-        v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch']
-        # min_y_dim = (min_h_pins * h_pin_width) + ((min_h_pins - 1) * h_pin_pitch) if min_h_pins > 0 else (
-        # 		min_h_pins * h_pin_width)
-        min_y_dim = max(sum([pin.y_width for pin in self.pin_sides_dict['left']]),
-                        sum([pin.y_width for pin in self.pin_sides_dict['right']])) + ((min_h_pins - 1) * h_pin_pitch)
-        # min_x_dim = (min_v_pins * v_pin_width) + ((min_v_pins - 1) * v_pin_pitch) if min_v_pins > 0 else (
-        # 		min_v_pins * v_pin_width)
-        min_x_dim = max(sum([pin.x_width for pin in self.pin_sides_dict['top']]),
-                        sum([pin.x_width for pin in self.pin_sides_dict['bottom']])) + ((min_v_pins - 1) * v_pin_pitch)
-
-        # max_hpin_size = 0
-        # max_vpin_size = 0
-        # for x_side in [self.pin_sides_dict['left'], self.pin_sides_dict['right']]:
-        # 	for pin in x_side:
-        # 		if max_hpin_size < pin.x_width:
-        # 			min_y_dim = pin.x_width
-        # for y_side in [self.pin_sides_dict['top'], self.pin_sides_dict['bottom']]:
-        # 	for pin in y_side:
-        # 		if min_x_dim < pin.y_width:
-        # 			min_x_dim = pin.y_width
-
-        if not x_width:
-            x_width = min_x_dim
-        if not y_width:
-            y_width = min_y_dim
-        if self.specs.get('aspect_ratio', None):
-            if not self.specs.get('xwidth', None) or not self.specs.get('ywidth', None):
-                if y_width * self.specs['aspect_ratio'][1] > min_x_dim:
-                    x_width = y_width / self.specs['aspect_ratio'][1] * self.specs['aspect_ratio'][0]
-                elif x_width * self.specs['aspect_ratio'][0] > min_y_dim:
-                    y_width = x_width / self.specs['aspect_ratio'][0] * self.specs['aspect_ratio'][1]
-        if x_width == 0 and y_width > 0:
-            x_width = y_width * self.specs['aspect_ratio'][1]
-        if y_width == 0 and x_width > 0:
-            y_width = x_width * self.specs['aspect_ratio'][0]
-        if self.specs['pin_margin']:
-            x_width = x_width + (2 * v_pin_pitch)
-            y_width = y_width + (2 * h_pin_pitch)
-        self.bbox_x_width = round(x_width, 3)
-        self.bbox_y_width = round(y_width, 3)
-        self.bbox_left_margin = round(max([pin.x_width for pin in self.pin_sides_dict['left']], default=0), 3)
-        self.bbox_right_margin = round(max([pin.x_width for pin in self.pin_sides_dict['right']], default=0), 3)
-        self.bbox_top_margin = round(max([pin.y_width for pin in self.pin_sides_dict['top']], default=0), 3)
-        self.bbox_bot_margin = round(max([pin.y_width for pin in self.pin_sides_dict['bottom']], default=0), 3)
-        self.x_width = round(self.bbox_x_width + self.bbox_left_margin + self.bbox_right_margin, 3)
-        self.y_width = round(self.bbox_y_width + self.bbox_top_margin + self.bbox_bot_margin, 3)
-
-    def place_pins(self, start_corner, side_dict, orientation):
-        for pin in side_dict:
-            layer = pin.layer
-            pin_width = self.metals[layer]['min_width']
-            pin_pitch = self.metals[layer]['pitch']
-            if pin.center:
-                if orientation == 'horizontal':
-                    start_corner[1] = round(pin.center - pin_width/2, 3)
-                else:
-                    start_corner[0] = round(pin.center - pin_width / 2, 3)
-            pin.add_rect(layer, start_corner[0], start_corner[1])
-            if orientation == 'horizontal':
-                start_corner[1] = round(start_corner[1] + pin_width + pin_pitch, 3)
-            else:
-                start_corner[0] = round(start_corner[0] + pin_width + pin_pitch, 3)
-
-    def build_design_repr(self):
-        origin = [0, 0]
-        h_pin_width = self.metals[self.specs['pins']['h_layer']]['min_width']
-        v_pin_width = self.metals[self.specs['pins']['v_layer']]['min_width']
-        h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch']
-        v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch']
-        bbox_bot_left_corner = [self.bbox_left_margin, self.bbox_bot_margin]
-        bbox_top_right_corner = [self.x_width - self.bbox_right_margin, self.y_width - self.bbox_top_margin]
-        if self.specs['pin_margin']:
-            x_corr = v_pin_pitch / 2
-            y_corr = h_pin_pitch / 2
-        else:
-            x_corr = 0
-            y_corr = 0
-
-        self.pin_place_start_corners = {}
-        self.pin_place_start_corners['left'] = [0,
-                                                round(
-                                                    np.ceil((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_width,
-                                                    3)]
-        self.pin_place_start_corners['right'] = [bbox_top_right_corner[0],
-                                                 round(
-                                                     np.ceil((self.bbox_bot_margin + y_corr) / h_pin_width) * h_pin_width,
-                                                     3)]
-        self.pin_place_start_corners['bottom'] = \
-            [round(np.ceil((self.bbox_left_margin + x_corr) / v_pin_width) * v_pin_width, 3), 0]
-        self.pin_place_start_corners['top'] = \
-            [round(np.ceil((self.bbox_left_margin + x_corr) / v_pin_width) * v_pin_width, 3),
-             bbox_top_right_corner[1]]
-
-        bbox_layers = []
-        for layer in self.metals:
-            if layer not in self.specs['exclude_layers']:
-                bbox_layers.append(layer)
-        self.bboxes = {
-            'BBOX': PHYBBox(bbox_layers, bbox_bot_left_corner[0], bbox_bot_left_corner[1], self.bbox_x_width,
-                            self.bbox_y_width)}
-        self.polygons['bboxes'] = self.bboxes
-        self.phys_objs += list(self.bboxes.values())
-
-        for side in self.pin_sides_dict.keys():
-            orientation = 'horizontal' if side in ['left', 'right'] else 'vertical'
-            self.place_pins(self.pin_place_start_corners[side], self.pin_sides_dict[side], orientation)
-#
-# for pin in self.pin_sides_dict['left']:
-# 	pin.add_rect(self.specs['pins']['h_layer'], left_pin_lower_corner[0], left_pin_lower_corner[1])
-# 	left_pin_lower_corner[1] = round(left_pin_lower_corner[1] + h_pin_width + h_pin_pitch, 3)
-#
-# for pin in self.pin_sides_dict['right']:
-# 	pin.add_rect(self.specs['pins']['h_layer'], right_pin_lower_corner[0], right_pin_lower_corner[1])
-# 	right_pin_lower_corner[1] = round(right_pin_lower_corner[1] + h_pin_width + h_pin_pitch, 3)
-#
-# for pin in self.pin_sides_dict['bottom']:
-# 	pin.add_rect(self.specs['pins']['v_layer'], bot_pin_lower_corner[0], bot_pin_lower_corner[1])
-# 	bot_pin_lower_corner[0] = round(bot_pin_lower_corner[0] + v_pin_width + v_pin_pitch, 3)
-#
-# for pin in self.pin_sides_dict['top']:
-# 	pin.add_rect(self.specs['pins']['v_layer'], top_pin_lower_corner[0], top_pin_lower_corner[1])
-# 	top_pin_lower_corner[0] = round(top_pin_lower_corner[0] + v_pin_width + v_pin_pitch, 3)

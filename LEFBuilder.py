@@ -173,36 +173,36 @@ class LEFBuilder(LEFBlock):
 # def add_pin
 
 
-class BBoxLEFBuilder(LEFBuilder):
-
-    def __init__(self, phy_design, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.make_lef_dict(phy_design)
-
-    def make_lef_dict(self, phy_design: PHYDesign, add_pg_pins=True):
-        pins = phy_design.pins
-        bbox = phy_design.bboxes
-        pg_pins = phy_design.pg_pins
-        name = phy_design.name
-        class_line = "CLASS BLOCK"
-        header_lines = self.add_lef_header(version=5.6)
-        origin_line = f"ORIGIN {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
-        foreign_line = f"FOREIGN {name} {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
-        size_line = f"SIZE {phy_design.x_width} BY {phy_design.y_width}"
-        sym_line = f"SYMMETRY {phy_design.specs['symmetry']}"
-        site_line = f"SITE {phy_design.specs['site']}"
-
-        self.lines += header_lines
-        self.lines += '\n'
-
-        # Macro lines
-        macro_lines = [class_line, origin_line, foreign_line, size_line, sym_line]
-
-        macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
-        if add_pg_pins:
-            for pg, pin in pg_pins.items():
-                macro_block.add_pgpin(pg, pin)
-        for pin in pins:
-            macro_block.add_pin(pin)
-        for bbox in bbox.values():
-            macro_block.add_bbox_obs(bbox.phys_objs)
+# class BBoxLEFBuilder(LEFBuilder):
+#
+#     def __init__(self, phy_design, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.make_lef_dict(phy_design)
+#
+#     def make_lef_dict(self, phy_design: PHYDesign, add_pg_pins=True):
+#         pins = phy_design.pins
+#         bbox = phy_design.bboxes
+#         pg_pins = phy_design.pg_pins
+#         name = phy_design.name
+#         class_line = "CLASS BLOCK"
+#         header_lines = self.add_lef_header(version=5.6)
+#         origin_line = f"ORIGIN {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
+#         foreign_line = f"FOREIGN {name} {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
+#         size_line = f"SIZE {phy_design.x_width} BY {phy_design.y_width}"
+#         sym_line = f"SYMMETRY {phy_design.specs['symmetry']}"
+#         site_line = f"SITE {phy_design.specs['site']}"
+#
+#         self.lines += header_lines
+#         self.lines += '\n'
+#
+#         # Macro lines
+#         macro_lines = [class_line, origin_line, foreign_line, size_line, sym_line]
+#
+#         macro_block = self.add_block('MACRO', phy_design.name, lines=macro_lines)
+#         if add_pg_pins:
+#             for pg, pin in pg_pins.items():
+#                 macro_block.add_pgpin(pg, pin)
+#         for pin in pins:
+#             macro_block.add_pin(pin)
+#         for bbox in bbox.values():
+#             macro_block.add_bbox_obs(bbox.phys_objs)
