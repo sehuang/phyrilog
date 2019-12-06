@@ -1,0 +1,3 @@
+[submodule "dotlibber"]
+	path = dotlibber
+	url = git@github.com:sehuang/dotlibber.git
