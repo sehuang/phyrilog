@@ -27,5 +27,5 @@ class SRAMList:
         self.srams = []
         pttrn = re.compile(pattern)
         for sram in self.everything:
-            if re.search(pttrn, sram):
+            if re.search(pttrn, sram) and not re.search('_1bit', sram):
                 self.srams.append(sram)

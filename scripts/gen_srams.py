@@ -19,7 +19,10 @@ class SRAMBBox:
         self.name = name
         self.per_word_bit_xwidth =  0.538 # This was determined arbitrarily.
         self.per_word_bit_xwidth =  0.119 # This was determined arbitrarily.
-        self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile)
+        self.clock_names = (('CE'),)
+        self.seq_names = (('O[^A-Z]','CE','~OEB & RE'),)
+        self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile,
+                                            clocks=self.clock_names, seq_pins=self.seq_names)
         self.layermapfile = layermapfile
         self.cornerfile = cornerfile
         self.specs = {'pin_margin': True,
@@ -216,7 +219,7 @@ class ASAP7SRAMs:
 
     def _find_module(self, top):
         for line in self.line_list:
-            if top in line.split():
+            if top in line.split() and 'module' in line.split():
                 return self.line_list.index(line)
 
     def _get_relevant_lines(self, top):

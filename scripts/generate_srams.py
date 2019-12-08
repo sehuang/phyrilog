@@ -12,6 +12,6 @@ if __name__ == '__main__':
     techfile = projects_dir / 'hammer/src/hammer-vlsi/technology/asap7/asap7.tech.json'
     corners = projects_dir / 'phyrilog/resources/asap7_lib_corners.json'
 
-    asap7_srams = ASAP7SRAMs(behav_model, projects_dir / 'phyrilog', projects_dir / 'hammer', search='new')
+    asap7_srams = ASAP7SRAMs(behav_model, projects_dir / 'phyrilog', projects_dir / 'hammer', search='[\s\S](_new)*')
     asap7_srams.add_all_srams()
     asap7_srams.build_all_srams()
