@@ -15,7 +15,7 @@ import numpy as np
 class SRAMBBox:
     """This object is a wrapper for all the generators and views2 associated with a single SRAM BBox instance."""
 
-    def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir):
+    def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir, characterizer=None):
         self.name = name
         self.per_word_bit_xwidth =  0.538 # This was determined arbitrarily.
         self.per_word_bit_xwidth =  0.119 # This was determined arbitrarily.
@@ -71,6 +71,10 @@ class SRAMBBox:
             self._get_xwidth_from_name()
         else:
             self._get_xwidth_from_consts()
+        if characterizer:
+            self.characterizer = characterizer(self.word_length, self.num_addr)
+        else:
+            self.characterizer = None
         self.phy = BBoxPHY(self.verilog_module, techfile, spec_dict=self.specs)
 
         views_dir_path = pathlib.Path(os.path.abspath(views_dir))
@@ -104,7 +108,7 @@ class SRAMBBox:
         self.gds_builder.write_gdsfile(filename=filepath)
 
     def build_lib(self, path=None):
-        self.lib_builder = LIBBuilder(self.phy, corners=self.cornerfile)
+        self.lib_builder = LIBBuilder(self.phy, corners=self.cornerfile, characterizer=self.characterizer)
         if path:
             filepath = path
         else:
@@ -131,16 +135,16 @@ class SRAMBBox:
         print('\n')
 
     def _get_xwidth_from_consts(self):
-        word_length = int(self.verilog_module.params['wordLength'])
-        num_addr = int(self.verilog_module.params['numAddr'])
+        self.word_length = int(self.verilog_module.params['wordLength'])
+        self.num_addr = int(self.verilog_module.params['numAddr'])
         aratio_limit = 2.5
         diff = 1
-        aratio = round(2 ** num_addr / word_length, 2)
+        aratio = round(2 ** self.num_addr / self.word_length, 2)
         if aratio > aratio_limit:
             diff = int(np.ceil(aratio / aratio_limit))
             aratio = aratio_limit
 
-        xwidth = self.per_word_bit_xwidth * int(word_length)
+        xwidth = self.per_word_bit_xwidth * int(self.word_length)
         self.specs['x_width'] = round(xwidth * diff, 3)
         self.specs['aspect_ratio'] = [1, aratio * 0.5]
         print(f'Xwidth: {round(xwidth * diff, 3)}')
@@ -154,6 +158,37 @@ class SRAMBBox:
         self.verilog_module.params['numAddr'] = str(num_addr)
         self._get_xwidth_from_consts()
 
+
+class ASAP7Characterizer(Characterizer):
+
+    def __init__(self, wordLength, numAddr):
+        self.word_length = wordLength
+        self.num_addr = numAddr
+
+    def characterizer(self, arc_type, timing_type, pin, related_pin, corner, params):
+        if arc_type == 'cell_rise':
+            R = 50
+            # time = np.log(np.log(params['input_net_transition'])) * R * params['total_output_net_capacitance'] * np.log2(self.num_addr)
+            time = np.log(np.log(params['input_net_transition'])) * R * 2**np.log(1.4**np.log(params['total_output_net_capacitance']))* np.log2(self.num_addr)
+            return round(float(time), 4)
+        elif arc_type == 'rise_transition':
+            R = 8
+            time = np.sqrt(params['input_net_transition']) * R * 1.1**np.log(1.1**np.log(1.05**np.log(params['total_output_net_capacitance'])))
+            return round(float(time), 4)
+        elif arc_type == 'cell_fall':
+            R = 51
+            # time = np.log(np.log(params['input_net_transition'])) * R * params['total_output_net_capacitance'] * np.log2(self.num_addr)
+            time = np.log(np.log(params['input_net_transition'])) * R * 2 ** np.log(
+                1.4 ** np.log(params['total_output_net_capacitance'])) * np.log2(self.num_addr)
+            return round(float(time), 4)
+        elif arc_type == 'fall_transition':
+            R = 7.9
+            time = np.sqrt(params['input_net_transition']) * R * 1.1**np.log(1.1**np.log(1.05**np.log(params['total_output_net_capacitance'])))
+            return round(float(time), 4)
+        else:
+            return round(float(5.0), 4)
+            
+        pass
 
 
 class ASAP7SRAMs:
@@ -253,7 +288,8 @@ class ASAP7SRAMs:
         if not os.path.exists(self.project_dir / 'views'):
             os.mkdir(self.project_dir / 'views')
         self.srams.append(SRAMBBox(name, self.modulefile, self.constfile, self.techfile,
-                                   self.layermapfile, self.cornerfile, self.project_dir / 'views'))
+                                   self.layermapfile, self.cornerfile, self.project_dir / 'views',
+                                   characterizer=ASAP7Characterizer))
 
 
     def build_all_sram_views(self, sram_obj):

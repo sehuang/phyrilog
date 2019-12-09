@@ -6,10 +6,15 @@ import os
 import numpy as np
 
 
+class Characterizer:
+
+    def characterizer(self, arc_type, timing_type, pin, related_pin, corner, params):
+        pass
+
 class LIBBuilder:
     """Builds a LIB view using John Wright's dotlibber"""
     def __init__(self, phy_obj, corners, specs={'all_pins':{},
-                                                'output_pins': {}}):
+                                                'output_pins': {}}, characterizer=None):
         if isinstance(corners, dict):
             self.corners = corners
         elif isinstance(corners, str):
@@ -27,6 +32,10 @@ class LIBBuilder:
                 raise FileNotFoundError(f"Unrecognized corner file {corners.name}")
         else:
             raise ValueError("Please supply a valid corner file.")
+        if characterizer:
+            self.characterizer = characterizer.characterizer
+        else:
+            self.characterizer = dl.default_characterizer
 
         self.phy_obj = phy_obj
         self.revision = 0
@@ -35,7 +44,7 @@ class LIBBuilder:
 
         self.get_pin_attr_from_corner_info()
         self.lib_attr_dict = self.get_lib_attr_dict()
-        self.dl_library = dl.Library(self.lib_attr_dict, self.corners)
+        self.dl_library = dl.Library(self.lib_attr_dict, self.corners, characterizer=self.characterizer)
 
     def get_lib_attr_dict(self):
         obj_name = self.phy_obj.name

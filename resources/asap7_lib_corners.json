@@ -12,12 +12,12 @@
                 "VSS" : 0.0
             },
             "constraint_template" : {
-                "related_pin_transition" : [2.0, 3.0, 4.0],
-                "constrained_pin_transition" : [1.0, 2.0, 3.0]
+                "related_pin_transition" : [5.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0],
+                "constrained_pin_transition" : [5.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0]
             },
             "delay_template" : {
-                "input_net_transition" : [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
-                "total_output_net_capacitance" : [0.0010, 0.0020, 0.0030, 0.0040, 0.0050, 0.0060, 0.0070, 0.0080]
+                "input_net_transition" : [5.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0],
+                "total_output_net_capacitance" : [0.72, 1.44, 2.88, 5.76, 11.52, 23.04, 46.08]
             }
         },
         {
@@ -31,12 +31,12 @@
                 "VSS" : 0.0
             },
             "constraint_template" : {
-                "related_pin_transition" : [2, 3, 4],
-                "constrained_pin_transition" : [1, 2, 3]
+                "related_pin_transition" : [5.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0],
+                "constrained_pin_transition" : [5.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0]
             },
             "delay_template" : {
-                "input_net_transition" : [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
-                "total_output_net_capacitance" : [0.0010, 0.0020, 0.0030, 0.0040, 0.0050, 0.0060, 0.0070, 0.0080]
+                "input_net_transition" : [5.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0],
+                "total_output_net_capacitance" : [0.72, 1.44, 2.88, 5.76, 11.52, 23.04, 46.08]
             }
         }
     ]
