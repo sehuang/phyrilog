@@ -71,6 +71,8 @@ class SRAMBBox:
             self._get_xwidth_from_name()
         else:
             self._get_xwidth_from_consts()
+        self.lib_options = {'capacitive_load_unit': '(1, ff)',
+                            'time_unit': '1ps'}
         if characterizer:
             self.characterizer = characterizer(self.word_length, self.num_addr)
         else:
@@ -108,7 +110,8 @@ class SRAMBBox:
         self.gds_builder.write_gdsfile(filename=filepath)
 
     def build_lib(self, path=None):
-        self.lib_builder = LIBBuilder(self.phy, corners=self.cornerfile, characterizer=self.characterizer)
+        self.lib_builder = LIBBuilder(self.phy, corners=self.cornerfile, characterizer=self.characterizer,
+                                      options=self.lib_options)
         if path:
             filepath = path
         else:
