@@ -328,30 +328,21 @@ class PHYPortPin(PHYObject):
         self.labels.append(label_obj)
 
 
-class PHYBBox(PHYObject):
-    """
-    Black-box PHYObject.
-
-    Parameters
-    ----------
-    layers : list[str]
-        List of layer names for which the black-box should exist on.
-    left_x : float
-        Left-side x-coordinate.
-    bot_y : float
-        Bottom-side x-coordinate.
-    x_width : float
-        X-dimension width of design.
-    y_width : float
-        Y-dimension width of design.
-
-    """
-    def __init__(self, layers, left_x, bot_y, x_width, y_width):
-        super().__init__("BBOX")
-        self.purpose = 'blockage'
-        for layer in layers:
-            self.add_rect(layer, left_x, bot_y, left_x + x_width,
-                             bot_y + y_width, self.purpose)
+# class PHYBBox(PHYObject):
+#     def __init__(self, layers, left_x, bot_y, right_x, top_y):
+#         super().__init__("BBOX")
+#         self.purpose = 'blockage'
+#         for layer in layers:
+#             self.add_rect(layer, left_x, bot_y, right_x, top_y)
+#
+#     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
+#         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
+#         self.phys_objs.append(rect_obj)
+#         self.rects[rect_obj.centroid] = rect_obj
+#
+#     def scale(self, scale_factor):
+#         for rect in self.phys_objs:
+#             rect.scale(scale_factor)
 
 class PHYDesign:
     """Python representation of a PHY Design. Right now this just consumes
@@ -552,8 +543,10 @@ class PHYDesign:
         pass
 
     def scale(self, scale_factor = 1):
+        scaled = []
         for obj in self.phys_objs:
             obj.scale(scale_factor)
+
         self.x_width = round(self.x_width * scale_factor, 3)
         self.y_width = round(self.y_width * scale_factor, 3)
 

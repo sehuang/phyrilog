@@ -2,7 +2,6 @@ import re
 import operator
 import ast
 import json
-from resources.astpp import parseprint
 
 class NameLookup(ast.NodeTransformer):
     """NodeTransformer object that replaces all variables in bus index expressions with a corresponding param dictionary
@@ -16,6 +15,58 @@ class NameLookup(ast.NodeTransformer):
             slice=ast.Index(value=ast.Str(s=node.id), ctx=ast.Load()),
             ctx=ast.Load()
         ), node)
+
+class WhenWriter(ast.NodeVisitor):
+
+    def __init__(self):
+        super().__init__()
+        self.when_list = []
+        self.sdf_list = []
+        self.invert_expr = ""
+
+    def visit_Invert(self, node):
+        self.invert_expr = "!"
+        # self.when_expr.append("!")
+        # self.sdf_expr.append("!")
+        self.generic_visit(node)
+
+    # def visit_BitAnd(self, node):
+    #     self.when_expr.append("&")
+    #     self.sdf_expr.append("&")
+    #     self.generic_visit(node)
+
+    def visit_Name(self, node):
+        if self.invert_expr:
+            node_str = self.invert_expr + node.id
+            self.invert_expr = ""
+        else:
+            node_str = node.id
+        self.when_list.append(node_str)
+        self.sdf_list.append(node_str)
+        self.generic_visit(node)
+
+    def clear(self):
+        self.when_list = []
+        self.sdf_list = []
+
+    @property
+    def when_expr(self):
+        return " & ".join(self.when_list)
+
+    @property
+    def sdf_expr(self):
+        return " & ".join(self.sdf_list)
+
+class NameUpdate(ast.NodeTransformer):
+
+    def __init__(self, suffix):
+        super().__init__()
+        self.suffix = suffix
+
+    def visit_Name(self, node):
+        return ast.copy_location(
+            ast.Name(id=node.id + self.suffix, ctx=node.ctx),
+            node)
 
 
 class VerilogModule:
@@ -40,6 +91,11 @@ class VerilogModule:
     constfile : str, Path, optional
         The constants header file name or absolute path.
 
+    clock : Tuple[str], optional
+        Iterable of all the possible clock pin names.
+
+    seq_pins : Tuple(Tuple(str, str)), optional
+        Iterable of all the sequential pin names with associated clocks.
 
     Attributes
     ----------
@@ -65,7 +121,7 @@ class VerilogModule:
 
     """
 
-    def __init__(self, top, VDD='VDD', VSS='VSS', filename=None, constfile=None):
+    def __init__(self, top, VDD='VDD', VSS='VSS', filename=None, constfile=None, clocks=('clock', 'clk'), seq_pins=(('', 'clock', 'when'))):
         with open(filename, 'r') as file:
             line_list = [line.rstrip('\n') for line in file]
         if constfile:
@@ -77,6 +133,10 @@ class VerilogModule:
         self.name = top
         self.pins = {}
         self.params = {}
+        self.clocks = {}
+        self.seq_pins = {}
+        self.filename = filename
+        self.ww = WhenWriter()
 
         top_line_no = self._get_top_module_line_no(line_list, top)
         pin_def_list = self._get_pin_def_list(line_list, top_line_no)
@@ -89,6 +149,9 @@ class VerilogModule:
 
         self.ports_json_dict = {'name': self.name,
                                 'pins': self.pins}
+
+        self._get_clock(clocks)
+        self._get_seq_pins(seq_pins)
 
     def _get_top_module_line_no(self, line_list, top):
         """Finds the beginning of the module definition.
@@ -114,7 +177,7 @@ class VerilogModule:
         for line in line_list:
             if checkstr in line:
                 return line_list.index(line)
-        raise NameError(f"Could not find module name {top} in file.")
+        raise NameError(f"Could not find module name {top} in {self.filename}.")
 
     def _get_pin_def_list(self, line_list, top_line_no):
         """Returns list of strings containing the module and port definitions."""
@@ -411,6 +474,74 @@ class VerilogModule:
                     pin_info.update(bus_lim_dict)
 
                 self.pins[name] = pin_info
+
+    def _get_clock(self, clocks):
+        """
+        Gets clock pin.
+
+        Parameters
+        ----------
+        clock : str
+            Name of clock pin.
+
+        Returns
+        -------
+
+        """
+
+        for clk_name in clocks:
+            re_pattern = re.compile(clk_name + "[_\w]*")
+            for pin_name in self.pins.keys():
+                re_match = re.search(re_pattern, pin_name)
+                if re_match:
+                    re_name = re_match[0]
+                    self.clocks[pin_name] = self.pins[re_name]
+                    self.pins[re_name].update({'clock': True})
+
+    def _get_seq_pins(self, seq_pin_names):
+        """
+        Gets sequential pins.
+
+        Parameters
+        ----------
+        seq_pin_names : Tuple[str, str, str]
+            Tuple of seq name templates to perform RegEx matching.
+
+        Returns
+        -------
+
+        """
+
+        for seq_pin in seq_pin_names:
+            seq_pin_name = seq_pin[0]
+            seq_pin_clk = seq_pin[1]
+            seq_pin_when = seq_pin[2]
+            re_pattern = re.compile(seq_pin_name + "[_\w]*")
+            re_singular = re.compile(seq_pin_name + '*')
+            re_clk_suffix_pattern = re.compile("[_\d]")
+            for pin_name in self.pins.keys():
+                if len(pin_name) == 1:
+                    re_match = re.search(re_singular, pin_name)
+                else:
+                    re_match = re.search(re_pattern, pin_name)
+                if re_match:
+                    re_name = re_match[0]
+                    clk_suffix = re.search(re_clk_suffix_pattern, re_name)
+                    clk_suffix = [""] if not clk_suffix else clk_suffix
+                    when_ast = ast.parse(seq_pin_when)
+                    when_ast = NameUpdate(clk_suffix[0]).visit(when_ast)
+                    self.ww.visit(when_ast)
+                    when_str = self.ww.when_expr
+                    sdf_str = self.ww.sdf_expr
+                    self.pins[re_name].update({'sequential': True})
+                    self.pins[re_name].update({'related_clock': seq_pin_clk + clk_suffix[0]})
+                    self.pins[re_name].update({'when': when_str})
+                    self.pins[re_name].update({'sdf_cond': sdf_str})
+                    self.seq_pins[pin_name] = self.pins[re_name]
+                    self.ww.clear()
+
+
+
 
     def write_pin_json(self, filename, pin_specs):
         """Serializes self.pins to a JSON file.

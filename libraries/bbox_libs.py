@@ -4,21 +4,21 @@ from verilog2phy import *
 from pin_placer import *
 
 
-# class PHYBBox(PHYObject):
-#     def __init__(self, layers, left_x, bot_y, right_x, top_y):
-#         super().__init__("BBOX")
-#         self.purpose = 'blockage'
-#         for layer in layers:
-#             self.add_rect(layer, left_x, bot_y, right_x, top_y)
-#
-#     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
-#         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
-#         self.phys_objs.append(rect_obj)
-#         self.rects[rect_obj.centroid] = rect_obj
-#
-#     def scale(self, scale_factor):
-#         for rect in self.phys_objs:
-#             rect.scale(scale_factor)
+class PHYBBox(PHYObject):
+    def __init__(self, layers, left_x, bot_y, right_x, top_y):
+        super().__init__("BBOX")
+        self.purpose = 'blockage'
+        for layer in layers:
+            self.add_rect(layer, left_x, bot_y, right_x, top_y)
+
+    def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
+        rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
+        self.phys_objs.append(rect_obj)
+        self.rects[rect_obj.centroid] = rect_obj
+
+    def scale(self, scale_factor):
+        for rect in self.phys_objs:
+            rect.scale(scale_factor)
 
 class BBoxPHY(PHYDesign):
     """Black-boxed LEF object. This class describes LEF stuff"""
@@ -43,7 +43,6 @@ class BBoxPHY(PHYDesign):
         self.define_design_boundaries()
         self.place_pins()
         self.build_design_repr()
-
 
     @property
     def x_width(self):
@@ -112,10 +111,10 @@ class BBoxPHY(PHYDesign):
                                       self.pin_placer.h_pin_pitch])
                 inner_box = bbox + margins
                 self.pin_placer.specs['internal_box'] = inner_box.tolist()
-            self.pin_placer.specs['design_boundary'] = (self.pin_placer.specs['internal_box'][
-                                                            2] + self.pin_placer.max_r_pin_length,
-                                                        self.pin_placer.specs['internal_box'][
-                                                            3] + self.pin_placer.max_t_pin_length)
+            self.pin_placer.specs['design_boundary'] = (round(self.pin_placer.specs['internal_box'][
+                                                            2] + self.pin_placer.max_r_pin_length, 3),
+                                                        round(self.pin_placer.specs['internal_box'][
+                                                            3] + self.pin_placer.max_t_pin_length, 3))
             self.pin_placer.specs['bound_box'] = self.pin_placer.specs['origin'] + list(self.pin_placer.specs['design_boundary'])
         else:
             self.pin_placer.autodefine_boundaries()
@@ -126,16 +125,13 @@ class BBoxPHY(PHYDesign):
 
     def place_pins(self):
         print(f"Begin placement iteration {self.placement_iter}...")
+        print(f"Trying Y width {self.y_width}.")
         exit_code = self.pin_placer.place_pins()
         self.pins = self.pin_placer.pins
         self.pg_pins = self.pin_placer.pg_pins
         self.pin_sides_dict = self.pin_placer.pin_sides_dict
         self.partitions = self.pin_placer.partitions
-        self.phys_objs += self.pins
-        self.phys_objs += self.pg_pins.values()
         self.specs = r_update(self.specs, self.pin_placer.specs)
-        self.polygons['pins'] = self.pins
-        self.polygons['pg_pins'] = self.pg_pins
         print(f"Pin placer finished with exit code {exit_code}")
         if exit_code:
             print("Pin placer finished unsuccessfully, redefining boundaries and trying again.")
@@ -146,6 +142,10 @@ class BBoxPHY(PHYDesign):
         else:
             print("Pin placement successful!")
             print("")
+            self.phys_objs += self.pins
+            self.phys_objs += self.pg_pins.values()
+            self.polygons['pins'] = self.pins
+            self.polygons['pg_pins'] = self.pg_pins
 
     def build_design_repr(self):
         bbox_layers = []
