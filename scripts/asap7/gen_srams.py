@@ -1,14 +1,8 @@
-from scripts.get_srams import SRAMList
+from scripts.asap7.get_srams import SRAMList
 from libraries.bbox_libs import *
-import tempfile
-import os
-import pathlib
 import shutil
-from verilog_pin_extract import VerilogModule
-from verilog2phy import *
 from LIBBuilder import *
 from GDSBuilder import *
-from LEFBuilder import *
 from utilities import *
 import numpy as np
 

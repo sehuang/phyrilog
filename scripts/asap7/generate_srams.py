@@ -1,4 +1,4 @@
-from scripts.gen_srams import ASAP7SRAMs
+from scripts.asap7.gen_srams import ASAP7SRAMs
 import pathlib
 import os
 
