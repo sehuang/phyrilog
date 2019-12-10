@@ -14,7 +14,7 @@ class Characterizer:
 class LIBBuilder:
     """Builds a LIB view using John Wright's dotlibber"""
     def __init__(self, phy_obj, corners, specs={'all_pins':{},
-                                                'output_pins': {}}, characterizer=None):
+                                                'output_pins': {}}, characterizer=None, options=None):
         if isinstance(corners, dict):
             self.corners = corners
         elif isinstance(corners, str):
@@ -44,7 +44,7 @@ class LIBBuilder:
 
         self.get_pin_attr_from_corner_info()
         self.lib_attr_dict = self.get_lib_attr_dict()
-        self.dl_library = dl.Library(self.lib_attr_dict, self.corners, characterizer=self.characterizer)
+        self.dl_library = dl.Library(self.lib_attr_dict, self.corners, characterizer=self.characterizer, options=options)
 
     def get_lib_attr_dict(self):
         obj_name = self.phy_obj.name
