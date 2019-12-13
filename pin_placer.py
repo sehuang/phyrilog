@@ -43,20 +43,33 @@ class PinPlacer:
     Attributes
     ----------
     pins_dict : dict
-        Dictionary of pin objects.
+        Dictionary of pin dictionaries.
     pg_pins_dict : dict
-        Dictionary of pg pin objects
+        Dictionary of pg pin dictionaries.
     defaults : dict
         Default settings for the pin placer.
     specs : Specification
-        Specification object with
-    pins
-    autodefined
-    pg_pins
-    dist_pin_spacing
-    pin_sides_dict
-    placed_pin_sides_dict
-    sig_figs
+        Specification object containing all specifications and options.
+    pins : list
+        Flat list of all pin objects.
+    autodefined : bool
+        Flag indicating if black box boundaries were automatically defined
+    pg_pins : dict
+        Dictionary of pg pin objects.
+    dist_pin_spacing : dict
+        Dictionary of per-side distributed pin spacing. This is currently
+        not used.
+    pin_sides_dict : dict
+        Dictionary of pin objects belonging to each side. This dictionary
+        is keyed by the name of the side, with corresponding value of a
+        list of pin objects beloning to that side.
+    placed_pin_sides_dict : dict
+        Dictionary of pin objects belonging to each side that have their
+        locations defined. This list is populated either by predefining
+        the pin locations in the pin_specs, or when a free pin is placed
+        by the pin placer.
+    sig_figs : int
+        Decimal significant figure precision of all coordinates.
     """
 
     def __init__(self, pins_dict, pg_pins_dict, techfile, pin_specs=dict(), options_dict=dict()):
@@ -113,6 +126,12 @@ class PinPlacer:
         self._sort_pins_by_side()
 
     def _define_pg_pin_dicts(self):
+        """
+        Defines PG pin dictionaries.
+        Returns
+        -------
+
+        """
         pg_pin_dicts = {}
         for purpose, pin in self.pg_pins_dict.items():
             pg_pin_dicts[purpose] = {'name': pin,
@@ -122,6 +141,18 @@ class PinPlacer:
         self.ground_pin = pg_pin_dicts['ground_pin']
 
     def _extract_techfile(self, techfile):
+        """
+        Dispatcher to extract routing information from a techfile.
+        Currently only supports HAMMER tech.json.
+        Parameters
+        ----------
+        techfile : Path
+            Path to techfile/
+
+        Returns
+        -------
+
+        """
         techfile = str(techfile) if not isinstance(techfile, str) else techfile
         if isinstance(techfile, str):
             filetype = techfile.split('.')[-1].lower()  # This normally expects a HAMMER tech.json
@@ -135,6 +166,17 @@ class PinPlacer:
             raise ValueError(f"Unrecognized File Type .{filetype}")
 
     def _extract_tech_json_info(self, techfile):
+        """
+        Extracts routing information from HAMMER tech.json to dictionaries.
+        Parameters
+        ----------
+        techfile : Path
+            Path to techfile.
+
+        Returns
+        -------
+
+        """
         with open(techfile) as file:
             self.tech_dict = json.load(file)
         stackups = self.tech_dict['stackups'][0]['metals']
@@ -146,9 +188,15 @@ class PinPlacer:
         self.h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch']
         self.v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch']
 
-    # def _make_pin_obj(self, pin_dict,):
-
     def _sort_pins_by_side(self):
+        """
+        Sorts pins defined in pins_dict by side based on sorting rules
+        defined in pin_specs.
+        Returns
+        -------
+
+        """
+        # TODO: Make the pin sorting algorithm configurable
         pin_specs = self.specs['pins']
         for pin in self.pins_dict.values():
             side = self.specs['port_sides'][pin['direction']]
@@ -225,6 +273,15 @@ class PinPlacer:
         self.max_t_pin_length = max_none([pin.y_width for pin in self.pin_sides_dict['top']])
 
     def autodefine_boundaries(self):
+        """
+        Automatically define black box boundaries from pin lists. This
+        method guarantees the black box will be able to fit all pins but
+        may not return realistic dimensions. This method takes aspect ratio
+        specification into account.
+        Returns
+        -------
+
+        """
         pin_specs = self.specs['pins']
         self.autodefined = True
         self.specs['internal_box'] = [round(self.max_l_pin_length, self.sig_figs),
@@ -264,6 +321,14 @@ class PinPlacer:
         self.specs['bound_box'] = self.specs['origin'] + bound_corner.tolist()
 
     def _place_defined_pins(self):
+        """
+        Place all pins with pre-defined locations. Reads the pin_specs dict
+        for pins with defined locations and creates PHYPortPin objects and
+        corresponding Rectangles and appends to placed_pin_sides_dict.
+        Returns
+        -------
+
+        """
         pin_specs = self.specs['pins']
         for side_name, side in self.pin_sides_dict.items():
             for pin in side:
@@ -296,6 +361,20 @@ class PinPlacer:
                         side.pop(side.index(pin))
 
     def _make_subpartitions(self):
+        """
+        Coordinate subpartitioning of each side of design.
+
+        The subpartition algorithm allows the pin placer to work with
+        pre-determined pin locations by treating each side as an interval
+        within which free pins may be placed. Each placed pin creates a
+        keepout zone around it, which is represented in the subpartition
+        algorithm as a division of an interval into two subintervals with
+        the pin keepout in between. This ensures all pin placements
+        adhere to design rules.
+        Returns
+        -------
+
+        """
         self.partitions = {'left': [],
                            'right': [],
                            'top': [],
@@ -318,18 +397,19 @@ class PinPlacer:
             if self.pin_sides_dict[side]:
                 self.dist_pin_spacing[side] = round(pin_space / len(self.pin_sides_dict[side]), self.sig_figs)
 
-    # if self.specs['pg_pin_placement'] == pg_pin_placement_options[2]:
-    # 	self.partitions[side] += self._subpartition_side()
-
     def _subpartition_interval(self, bounds, rect):
-        """Subpartitions a given interval with the given placed pin
-
-        Arguments
+        """Subpartitions a given interval with the given placed pin.
+        Parameters
         ---------
         bounds: list[float, float]
             Lower and upper bound of interval, respectively
         rect: Rectangle object
             Rectangle object occupying dividing space
+
+        Returns
+        -------
+        partitions : list
+            List of new partitions.
         """
         center = rect.center
         layer = rect.layer
@@ -349,6 +429,20 @@ class PinPlacer:
         return partitions
 
     def _subpartition_side(self, side_bounds, placed_pins):
+        """
+        Iterates subpartitioning method over all pins on a side.
+        Parameters
+        ----------
+        side_bounds : list[lower_bound, upper_bound]
+            List of bounding coordinates of the side.
+        placed_pins : list[PHYPortPin]
+            List of placed pin objects.
+
+        Returns
+        -------
+        partitions : list
+            List of new partitions.
+        """
         partitions = side_bounds
         for pin_obj in placed_pins:
             for rect in pin_obj.rects.values():
@@ -360,6 +454,23 @@ class PinPlacer:
         return partitions
 
     def place_interlaced_pg_pins(self, layer, interlace_interval, side_bounds):
+        """
+        Places PG pins using the interlacing placement scheme. Interlacing
+        means the PG straps are placed between signal pins at a regular
+        interval of pins.
+        Parameters
+        ----------
+        layer : str
+            Layer on which to draw pg pin objects.
+        interlace_interval : int
+            Number of pins between each PG strap.
+        side_bounds : list[lower_bound, upper_bound]
+            Bounding coordinates of the side to place pg straps on.
+
+        Returns
+        -------
+
+        """
         pg_pin_specs = self.specs['pg_pins']
         width = self.metals[layer]['min_width']
         pitch = self.metals[layer]['pitch']
@@ -412,6 +523,25 @@ class PinPlacer:
             self.draw_pg_strap(vdd_center, vdd_obj1, gnd_obj1, layer=layer, pair=True)
 
     def _get_pg_strap_objs(self, p_layer=None, g_layer=None):
+        """
+        Returns PHYPortPin objects corresponding to PG straps.
+        Parameters
+        ----------
+        p_layer : str, optional
+            Layer on which to place power strap. If not defined, checks
+            specification dictionary for layer.
+        g_layer : str, optional
+            Layer on which to place ground strap. If not defined, defaults
+            to p_layer.
+
+        Returns
+        -------
+        vdd_obj1, gnd_obj1, vdd_obj2, gnd_obj2 : PHYPortPin
+            PHYPortPin Objects corresponding to the power straps that are
+            to be defined. Each come as a pair as the straps extend across
+            the entire design, and therefore must be treated as pins on
+            both sides (left/right or top/bottom).
+        """
         pg_pin_dicts = {}
         pg_pin_specs = self.specs['pg_pins']
         vdd_side = self.specs['pg_pins'].get('side', self.defaults['pg_pin_sides']['power_pin'])
@@ -452,6 +582,26 @@ class PinPlacer:
         return vdd_obj1, gnd_obj1, vdd_obj2, gnd_obj2
 
     def draw_pg_strap(self, center, pwr_obj, gnd_obj, layer=None, pair=True):
+        """
+        Adds Rectangle objects to each pg strap object.
+        Parameters
+        ----------
+        center : float
+            Center coordinate of PG strap.
+        pwr_obj : PHYPortPin
+            PHYPortPin object corresponding to the power strap.
+        gnd_obj : PHYPortPin
+            PHYPortPin objects corresponding to the ground strap.
+        layer : str, optional
+            Layer on which to draw PG strap. Defaults to spec dict lookup.
+        pair : bool, optional
+            P and G straps generated together? Defaults to True.
+
+        Returns
+        -------
+        pwr_coords, gnd_coords : list
+            Coordinates of generated Rectangle objects.
+        """
         pg_pin_dicts = {}
         pg_pin_specs = self.specs['pg_pins']
         for purpose, pin in self.pg_pins_dict.items():
@@ -512,6 +662,12 @@ class PinPlacer:
         return pwr_obj.rects[center].coords, gnd_obj.rects[gnd_center].coords
 
     def place_free_pins(self):
+        """
+        Place all free placement pins.
+        Returns
+        -------
+
+        """
         for side, partitions in self.partitions.items():
             pin_list = self.pin_sides_dict[side]
             while len(partitions) > 0:
@@ -528,6 +684,18 @@ class PinPlacer:
                 self.placed_pin_sides_dict[side] += placed_pins
 
     def _placement_engine_dispatcher(self, *args):
+        """
+        Dispatches pin placement to appropriate placement engine.
+        Parameters
+        ----------
+        args : args
+            All arguments passed through to pin placement engine.
+
+        Returns
+        -------
+        return
+            Returns result from pin placement engine.
+        """
         dispatch_dict = {'min_pitch': self._minimum_pitch_engine,
                          'distributed': self._distributed_place_engine,
                          # 'center-span': self._center_span_engine
@@ -536,6 +704,30 @@ class PinPlacer:
         return placement_engine(*args)
 
     def _minimum_pitch_engine(self, interval, orientation, ref_edge, pin_list, *args):
+        """
+        Places pins assuming minimum pitch between each pin within given
+        interval. Continues placing pins until no more can fit in interval.
+        Parameters
+        ----------
+        interval : list[lower_bound, upper_bound]
+            Bounding coordinates of valid interval for placement.
+        orientation : ('horiztonal', 'vertical')
+            Orientation of pin.
+        ref_edge : ('left', 'bottom')
+            Edge of design to use as reference coordinate. Only left and
+            bottom edges are valid.
+        pin_list : List
+            List of pins to place.
+        args
+            Extra arguments.
+
+        Returns
+        -------
+        pin_list : list
+            List of remaining unplaced pins after placement.
+        placed_pins : list
+            List of placed pins.
+        """
         lower = interval[0]
         # upper = interval[0]
         placed_pins = []
@@ -557,6 +749,21 @@ class PinPlacer:
         return pin_list, placed_pins
 
     def _distributed_place_engine(self, interval, orientation, ref_edge, pin_list, side):
+        """
+        THIS METHOD IS NOT USED.
+
+        Parameters
+        ----------
+        interval
+        orientation
+        ref_edge
+        pin_list
+        side
+
+        Returns
+        -------
+
+        """
         interval_size = interval[1] - interval[0]
         spacing = self.dist_pin_spacing[side]
         if len(pin_list) == 0:
@@ -600,6 +807,14 @@ class PinPlacer:
     # def _wraparound_place_engine(self):
 
     def place_pins(self):
+        """
+        Master method to perform all the steps in pin placement.
+        Returns
+        -------
+        failed : int
+            Exit code for the pin placement process. 1 if failed to place
+            all pins, 0 if successful.
+        """
         self._place_defined_pins()
         if self.specs['pg_pins']['pg_pin_placement'] == 'interlaced':
             try:
@@ -629,9 +844,13 @@ class PinPlacer:
         return int(failed)
 
     def _clean_pin_lists(self):
-        """To do the interlace pg striping, I have to create some 'ghost' pins so the sides
-        are partitioned correctly, but this will mess with translation to LEF/GDS. This method
-        removes those redundant pin objects that don't have rectangles defined in them."""
+        """
+        Removes "ghost" pins. During pg strapping, non-real pins are
+        created to allow for proper side partitioning. These pins must be
+        removed prior to generation of physical views.
+        Returns
+        -------
+        """
         clean_list = []
         for pin_obj in self.pg_pins.values():
             if pin_obj.rects:
