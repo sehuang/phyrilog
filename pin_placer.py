@@ -25,7 +25,39 @@ pin_specs = {'pins': {'h_layer': "M2",
 
 
 class PinPlacer:
-    """Pin placement engine"""
+    """Pin Placement Engine.
+
+    Parameters
+    ----------
+    pins_dict : dict
+        Dictionary of pins from VerilogModule
+    pg_pins_dict : dict
+        Dictionary of pg_pins from VerilogModule
+    techfile : Path, str
+        Path to HAMMER tech.json
+    pin_specs : dict
+        Dictionary of specifications relevant to pin placement and shape
+    options_dict : dict
+        Dictionary of options for the pin placer.
+
+    Attributes
+    ----------
+    pins_dict : dict
+        Dictionary of pin objects.
+    pg_pins_dict : dict
+        Dictionary of pg pin objects
+    defaults : dict
+        Default settings for the pin placer.
+    specs : Specification
+        Specification object with
+    pins
+    autodefined
+    pg_pins
+    dist_pin_spacing
+    pin_sides_dict
+    placed_pin_sides_dict
+    sig_figs
+    """
 
     def __init__(self, pins_dict, pg_pins_dict, techfile, pin_specs=dict(), options_dict=dict()):
         self.pins_dict = pins_dict

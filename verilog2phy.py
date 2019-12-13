@@ -328,22 +328,6 @@ class PHYPortPin(PHYObject):
         self.labels.append(label_obj)
 
 
-# class PHYBBox(PHYObject):
-#     def __init__(self, layers, left_x, bot_y, right_x, top_y):
-#         super().__init__("BBOX")
-#         self.purpose = 'blockage'
-#         for layer in layers:
-#             self.add_rect(layer, left_x, bot_y, right_x, top_y)
-#
-#     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
-#         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
-#         self.phys_objs.append(rect_obj)
-#         self.rects[rect_obj.centroid] = rect_obj
-#
-#     def scale(self, scale_factor):
-#         for rect in self.phys_objs:
-#             rect.scale(scale_factor)
-
 class PHYDesign:
     """Python representation of a PHY Design. Right now this just consumes
     VerilogModules.
@@ -353,8 +337,8 @@ class PHYDesign:
     verilog_module : VerilogModule
         VerilogModule object that will be processed into a PHYDesign.
     techfile : str, Path
-        Path to the tech.json for the technology the PHYDesign is to be
-        made in.
+        Path to the HAMMER tech.json for the technology the PHYDesign is to
+        be made in.
     spec_dict : dict
         Dictionary of options and specifications for the design. Please
         consult spec_dict_schema.yaml for an example of the spec_dict
@@ -363,13 +347,27 @@ class PHYDesign:
     Attributes
     ----------
     verilog_pin_dict : dict
+        Copy of VerilogModule pin dictionary.
     verilog_pg_pin_dict : dict
+        Copy of VerilogModule PG pin dictionary.
     name : str
+        Name of the module.
     spec_dict : dict
+        Input specification dictionary.
     pins : list[PHYPortPin]
-    pg_pins :
-
-
+        List of PortPin physical objects in this design.
+    pg_pins : list[PHYPortPin]
+        List of PortPin PG pin physical objects in this design.
+    defaults : dict
+        Default specifications to be overwritten.
+    specs : Specification
+        Specification() object used as common location to find spec dict.
+    x_width : float
+        Top-level x-coordinate width of design.
+    y_width : float
+        Top-level y-coordinate width of design.
+    polygons : dict
+        Flat hierarchy dictionary of polygons in design.
     """
 
     def __init__(self, verilog_module, techfile, spec_dict=None):
@@ -421,8 +419,20 @@ class PHYDesign:
         # self.aspect_ratio = self.specs_dict.get('aspect_ratio', None)
         self.polygons = {'pins': self.pins,
                          'pg_pins': self.pg_pins}
+        self.sig_figs = int(-(np.log10(self.specs['units']) - np.log10(self.specs['precision'])))
 
     def _extract_tech_json_info(self, techfile):
+        """
+        Extracts routing information from tech JSON to dictionaries.
+        Parameters
+        ----------
+        techfile : Path
+            Path to tech.json file.
+
+        Returns
+        -------
+
+        """
         with open(techfile) as file:
             self.tech_dict = json.load(file)
         stackups = self.tech_dict['stackups'][0]['metals']
@@ -494,6 +504,14 @@ class PHYDesign:
         self.phys_objs.append(gnd_pin)
 
     def add_pin_objects(self):
+        """
+        ..deprecated : 0.9
+            This method has been superceded by the pin placer.
+
+        Returns
+        -------
+
+        """
         self.n_inputs = 0
         self.n_outputs = 0
         for pin_name, pin_info in self.verilog_pin_dict.items():
