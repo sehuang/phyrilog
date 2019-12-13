@@ -62,6 +62,7 @@ class PinPlacer:
         self.specs = r_update(self.specs, options_dict)
         self._extract_techfile(techfile)
         self.pins = []
+        self.sig_figs = int(-(np.log10(self.specs['units']) - np.log10(self.specs['precision'])))
         self.autodefined = False
         self.pg_pins = {}
         self.dist_pin_spacing = {'left': 0,
@@ -136,7 +137,7 @@ class PinPlacer:
                     pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, bus_idx=bus_idx)
                     pin_obj.name = pin['name'] + '[' + str(bus_idx) + ']'
                     self.pin_sides_dict[side].append(pin_obj)
-                    self.pins.append(pin_obj)
+                    elf.pins.append(pin_obj)
             else:
                 pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, center=center)
                 self.pin_sides_dict[side].append(pin_obj)
@@ -161,7 +162,7 @@ class PinPlacer:
                 if 'multiplier' in self.specs['pg_pins'].keys():
                     for idx in range(pg_pin['multiplier'] + 1):
                         spacing = 2 * self.metals[layer]['min_width'] + 2 * self.metals[layer]['pitch']
-                        new_cent = center + round(idx * spacing, 3)
+                        new_cent = center + round(idx * spacing, self.sig_figs)
                         pin_obj = PHYPortPin(pg_pin_dict, layer, side, x_width, y_width, center=new_cent)
                         self.pin_sides_dict[side].append(pin_obj)
                         # self.pins.append(pin_obj)
@@ -176,16 +177,16 @@ class PinPlacer:
                         self.pg_pins['gnd'] = pin_obj
         self.h_pin_spacing = self.h_pin_pitch - self.h_pin_width
         self.v_pin_spacing = self.v_pin_pitch - self.v_pin_width
-        self.min_h_pins = round(max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right'])), 3)
-        self.min_v_pins = round(max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom'])), 3)
+        self.min_h_pins = round(max(len(self.pin_sides_dict['left']), len(self.pin_sides_dict['right'])), self.sig_figs)
+        self.min_v_pins = round(max(len(self.pin_sides_dict['top']), len(self.pin_sides_dict['bottom'])), self.sig_figs)
         self.min_y_dim = round(max(sum([pin.y_width for pin in self.pin_sides_dict['left']]) +
                                    (self.min_h_pins - 1) * self.h_pin_spacing,
                                    sum([pin.y_width for pin in self.pin_sides_dict['right']]) + (
-                                           (self.min_h_pins - 1) * self.h_pin_spacing)), 3)
+                                           (self.min_h_pins - 1) * self.h_pin_spacing)), self.sig_figs)
         self.min_x_dim = round(max(sum([pin.x_width for pin in self.pin_sides_dict['top']]) +
                                    (self.min_v_pins - 1) * (self.v_pin_spacing),
                                    sum([pin.x_width for pin in self.pin_sides_dict['bottom']]) + (
-                                           (self.min_v_pins - 1) * self.v_pin_pitch)), 3)
+                                           (self.min_v_pins - 1) * self.v_pin_pitch)), self.sig_figs)
         self.max_b_pin_length = max_none([pin.y_width for pin in self.pin_sides_dict['bottom']])
         self.max_l_pin_length = max_none([pin.x_width for pin in self.pin_sides_dict['left']])
         self.max_r_pin_length = max_none([pin.x_width for pin in self.pin_sides_dict['right']])
@@ -194,10 +195,10 @@ class PinPlacer:
     def autodefine_boundaries(self):
         pin_specs = self.specs['pins']
         self.autodefined = True
-        self.specs['internal_box'] = [round(self.max_l_pin_length, 3),
-                                      round(self.max_b_pin_length, 3),
-                                      round(self.min_x_dim + self.max_l_pin_length, 3),
-                                      round(self.min_y_dim + self.max_b_pin_length, 3)]
+        self.specs['internal_box'] = [round(self.max_l_pin_length, self.sig_figs),
+                                      round(self.max_b_pin_length, self.sig_figs),
+                                      round(self.min_x_dim + self.max_l_pin_length, self.sig_figs),
+                                      round(self.min_y_dim + self.max_b_pin_length, self.sig_figs)]
         self.specs['design_boundary'] = [
             self.min_x_dim + self.max_l_pin_length + self.max_r_pin_length,
             self.min_y_dim + self.max_t_pin_length + self.max_b_pin_length]
@@ -206,22 +207,22 @@ class PinPlacer:
             dom_dim_idx = self.specs['design_boundary'].index(max(self.specs['design_boundary']))
             sub_dim_idx = self.specs['design_boundary'].index(min(self.specs['design_boundary']))
             sub_dim = round(self.specs['design_boundary'][dom_dim_idx] / self.specs['aspect_ratio'][dom_dim_idx] *
-                            self.specs['aspect_ratio'][sub_dim_idx], 3)
-            self.specs['design_boundary'][sub_dim_idx] = round(sub_dim, 3)
+                            self.specs['aspect_ratio'][sub_dim_idx], self.sig_figs)
+            self.specs['design_boundary'][sub_dim_idx] = round(sub_dim, self.sig_figs)
             box_sides = [self.specs['internal_box'][2] - self.specs['internal_box'][0],
                          self.specs['internal_box'][3] - self.specs['internal_box'][1]]
             dom_dim_idx = box_sides.index(max(box_sides))
             sub_dim_idx = box_sides.index(min(box_sides))
             sub_dim = round(box_sides[dom_dim_idx] / self.specs['aspect_ratio'][dom_dim_idx] *
-                            self.specs['aspect_ratio'][sub_dim_idx], 3)
+                            self.specs['aspect_ratio'][sub_dim_idx], self.sig_figs)
             box_sides[sub_dim_idx] = sub_dim
             self.specs['internal_box'][2 + sub_dim_idx] = round(self.specs['internal_box'][0 + sub_dim_idx] + sub_dim,
-                                                                3)
+                                                                self.sig_figs)
         if self.specs['pin_margin']:
             margins = np.asarray([0, 0, self.v_pin_pitch, self.h_pin_pitch])
             self.specs['design_boundary'] = [
-                round(self.min_x_dim + self.max_l_pin_length + self.max_r_pin_length + 2 * self.v_pin_pitch, 3),
-                round(self.min_y_dim + self.max_t_pin_length + self.max_b_pin_length + 2 * self.h_pin_pitch, 3)]
+                round(self.min_x_dim + self.max_l_pin_length + self.max_r_pin_length + 2 * self.v_pin_pitch, self.sig_figs),
+                round(self.min_y_dim + self.max_t_pin_length + self.max_b_pin_length + 2 * self.h_pin_pitch, self.sig_figs)]
             inner_box = np.asarray(self.specs['internal_box']) + margins
             self.specs['internal_box'] = inner_box.tolist()
         self.specs['design_boundary'] = [self.specs['internal_box'][2] + self.max_r_pin_length,
@@ -243,21 +244,21 @@ class PinPlacer:
                         if side_name in ['left', 'right']:
                             layer = pin_specs['h_layer']
                             layer = pin_specs[pin.name].get('layer', layer)
-                            x_width = round(pin_specs[pin.name].get('x_width', pin_specs['pin_length']), 3)
-                            y_width = round(pin_specs[pin.name].get('y_width', self.h_pin_width), 3)
-                            left_x = 0 if side_name == 'left' else round(self.specs['design_boundary'][0] - x_width, 3)
-                            right_x = x_width if side_name == 'left' else round(self.specs['design_boundary'][0], 3)
-                            top_y = round(center + y_width / 2, 3)
-                            bot_y = round(center - y_width / 2, 3)
+                            x_width = round(pin_specs[pin.name].get('x_width', pin_specs['pin_length']), self.sig_figs)
+                            y_width = round(pin_specs[pin.name].get('y_width', self.h_pin_width), self.sig_figs)
+                            left_x = 0 if side_name == 'left' else round(self.specs['design_boundary'][0] - x_width, self.sig_figs)
+                            right_x = x_width if side_name == 'left' else round(self.specs['design_boundary'][0], self.sig_figs)
+                            top_y = round(center + y_width / 2, self.sig_figs)
+                            bot_y = round(center - y_width / 2, self.sig_figs)
                         else:
                             layer = pin_specs['v_layer']
                             layer = pin_specs[pin.name].get('layer', layer)
-                            x_width = round(pin_specs[pin.name].get('x_width', pin_specs['pin_length']), 3)
-                            y_width = round(pin_specs[pin.name].get('y_width', self.h_pin_width), 3)
-                            left_x = round(center - x_width / 2, 3)
-                            right_x = round(center + x_width / 2, 3)
-                            bot_y = 0 if side_name == 'bottom' else round(self.specs['design_boundary'][1] - y_width, 3)
-                            top_y = y_width if side_name == 'bottom' else round(self.specs['design_boundary'][1], 3)
+                            x_width = round(pin_specs[pin.name].get('x_width', pin_specs['pin_length']), self.sig_figs)
+                            y_width = round(pin_specs[pin.name].get('y_width', self.h_pin_width), self.sig_figs)
+                            left_x = round(center - x_width / 2, self.sig_figs)
+                            right_x = round(center + x_width / 2, self.sig_figs)
+                            bot_y = 0 if side_name == 'bottom' else round(self.specs['design_boundary'][1] - y_width, self.sig_figs)
+                            top_y = y_width if side_name == 'bottom' else round(self.specs['design_boundary'][1], self.sig_figs)
                         pin.add_rect(layer, left_x=left_x, bot_y=bot_y)
                         self.placed_pin_sides_dict[side_name].append(pin)
                         side.pop(side.index(pin))
@@ -268,9 +269,9 @@ class PinPlacer:
                            'top': [],
                            'bottom': []}
         h_pin_margin = round(self.specs.get('pin_margin', False) *
-                             self.metals[self.specs['pins']['h_layer']]['pitch'] * 0.5, 3)
+                             self.metals[self.specs['pins']['h_layer']]['pitch'] * 0.5, self.sig_figs)
         v_pin_margin = round(self.specs.get('pin_margin', False) *
-                             self.metals[self.specs['pins']['v_layer']]['pitch'] * 0.5, 3)
+                             self.metals[self.specs['pins']['v_layer']]['pitch'] * 0.5, self.sig_figs)
         bounds = {'left': [self.specs['internal_box'][1] + h_pin_margin, self.specs['internal_box'][3] - h_pin_margin],
                   'right': [self.specs['internal_box'][1] + h_pin_margin, self.specs['internal_box'][3] - h_pin_margin],
                   'top': [self.specs['internal_box'][0] + v_pin_margin, self.specs['internal_box'][2] - v_pin_margin],
@@ -281,9 +282,9 @@ class PinPlacer:
         for side, pin_space in self.dist_pin_spacing.items():
             pin_space = 0
             for partition in self.partitions[side]:
-                pin_space += round(partition[1] - partition[0], 3)
+                pin_space += round(partition[1] - partition[0], self.sig_figs)
             if self.pin_sides_dict[side]:
-                self.dist_pin_spacing[side] = round(pin_space / len(self.pin_sides_dict[side]), 3)
+                self.dist_pin_spacing[side] = round(pin_space / len(self.pin_sides_dict[side]), self.sig_figs)
 
     # if self.specs['pg_pin_placement'] == pg_pin_placement_options[2]:
     # 	self.partitions[side] += self._subpartition_side()
@@ -305,11 +306,11 @@ class PinPlacer:
             pitch = self.metals[layer]['pitch']
             direction = self.metals[layer]['direction']
             if direction == 'horizontal':
-                lower_interval = [round(bounds[0], 3), round(pin_dimensions[3] - pitch, 3)]
-                upper_interval = [round(pin_dimensions[1] + pitch, 3), round(bounds[1], 3)]
+                lower_interval = [round(bounds[0], self.sig_figs), round(pin_dimensions[3] - pitch, self.sig_figs)]
+                upper_interval = [round(pin_dimensions[1] + pitch, self.sig_figs), round(bounds[1], self.sig_figs)]
             else:
-                lower_interval = [round(bounds[0], 3), round(pin_dimensions[2] - pitch, 3)]
-                upper_interval = [round(pin_dimensions[0] + pitch, 3), round(bounds[1], 3)]
+                lower_interval = [round(bounds[0], self.sig_figs), round(pin_dimensions[2] - pitch, self.sig_figs)]
+                upper_interval = [round(pin_dimensions[0] + pitch, self.sig_figs), round(bounds[1], self.sig_figs)]
             partitions = [lower_interval, upper_interval]
         else:
             partitions = [bounds]
@@ -332,14 +333,14 @@ class PinPlacer:
         pitch = self.metals[layer]['pitch']
         horizontal = self.metals[layer]['direction'] == 'horizontal'
         sides = ['left', 'right'] if horizontal else ['top', 'bottom']
-        pin_window = round(pitch, 3)
+        pin_window = round(pitch, self.sig_figs)
         side_length = side_bounds[1] - side_bounds[0]
         a = 2 * pg_pin_specs.get('strap_width', width)
         b = pg_pin_specs.get('strap_spacing', pitch)
         strap_width = pg_pin_specs.get('strap_width', width)
-        strap_spacing = pg_pin_specs.get('strap_spacing', round(pitch - strap_width / 2, 3))
-        interlace_size = round(2 * strap_width + strap_spacing, 3)
-        interlace_chunk = round(pin_window * interlace_interval + interlace_size + (pitch - width / 2), 3)
+        strap_spacing = pg_pin_specs.get('strap_spacing', round(pitch - strap_width / 2, self.sig_figs))
+        interlace_size = round(2 * strap_width + strap_spacing, self.sig_figs)
+        interlace_chunk = round(pin_window * interlace_interval + interlace_size + (pitch - width / 2), self.sig_figs)
         if horizontal:
             n_interlaces = int(np.floor(self.min_h_pins / interlace_interval))
         else:
@@ -355,7 +356,7 @@ class PinPlacer:
                     else:
                         total_pin_width = sum(pin.x_width for pin in self.pin_sides_dict[side])
                     self.dist_pin_spacing[side] = round((side_length - total_pin_width) /
-                                                        (len(self.pin_sides_dict[side])), 3) \
+                                                        (len(self.pin_sides_dict[side])), self.sig_figs) \
                         if self.pin_sides_dict[side] else pitch
                 pin_window = min(self.dist_pin_spacing[sides[0]], self.dist_pin_spacing[sides[1]])
         start = side_bounds[0] + self.specs['pin_margin'] * pitch * 0.5
@@ -368,14 +369,14 @@ class PinPlacer:
         # for side in sides:
         #     self.placed_pin_sides_dict[side] += interlace_list
         for n in range(n_interlaces):
-            vdd_center = round(start + pin_window * interlace_interval + strap_width * 0.5, 3)
-            start = round(start + pin_window * interlace_interval + interlace_size + (pitch - width) * 0.5, 3)
+            vdd_center = round(start + pin_window * interlace_interval + strap_width * 0.5, self.sig_figs)
+            start = round(start + pin_window * interlace_interval + interlace_size + (pitch - width) * 0.5, self.sig_figs)
             if self.autodefined:
-                self.specs['internal_box'][2 + horizontal] += round(interlace_size + (pitch - width) * 0.5, 3)
+                self.specs['internal_box'][2 + horizontal] += round(interlace_size + (pitch - width) * 0.5, self.sig_figs)
             if horizontal:
-                self.min_y_dim += round(interlace_size + (pitch - width) * 0.5, 3)
+                self.min_y_dim += round(interlace_size + (pitch - width) * 0.5, self.sig_figs)
             else:
-                self.min_x_dim += round(interlace_size + (pitch - width) * 0.5, 3)
+                self.min_x_dim += round(interlace_size + (pitch - width) * 0.5, self.sig_figs)
             self.draw_pg_strap(vdd_center, vdd_obj1, gnd_obj1, layer=layer, pair=True)
 
     def _get_pg_strap_objs(self, p_layer=None, g_layer=None):
@@ -400,13 +401,13 @@ class PinPlacer:
                                      'direction': 'inout',
                                      'is_analog': False}
         if self.metals[vdd_layer]['direction'] == 'horizontal':
-            vdd_xwidth = round(self.specs['design_boundary'][0], 3)
-            vdd_ywidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), 3)
+            vdd_xwidth = round(self.specs['design_boundary'][0], self.sig_figs)
+            vdd_ywidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), self.sig_figs)
             gnd_xwidth = vdd_xwidth
             gnd_ywidth = vdd_ywidth
         else:
-            vdd_ywidth = round(self.specs['design_boundary'][1], 3)
-            vdd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), 3)
+            vdd_ywidth = round(self.specs['design_boundary'][1], self.sig_figs)
+            vdd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), self.sig_figs)
             gnd_xwidth = vdd_xwidth
             gnd_ywidth = vdd_ywidth
         side = ['left', 'right'] if pg_pin_specs['strap_orientation'] == 'horizontal' else ['top', 'bottom']
@@ -427,37 +428,37 @@ class PinPlacer:
                                      'is_analog': False}
         vdd_layer = layer if layer else pg_pin_specs['pwr_pin']['layer']
         if self.metals[vdd_layer]['direction'] == 'horizontal':
-            vdd_xwidth = round(self.specs['design_boundary'][0], 3)
-            vdd_ywidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), 3)
-            vdd_pos = round(center - vdd_ywidth / 2, 3)
+            vdd_xwidth = round(self.specs['design_boundary'][0], self.sig_figs)
+            vdd_ywidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), self.sig_figs)
+            vdd_pos = round(center - vdd_ywidth / 2, self.sig_figs)
             if pair:
                 pitch = self.specs.get('strap_spacing', self.metals[vdd_layer]['pitch'])
                 gnd_xwidth = vdd_xwidth
                 gnd_ywidth = vdd_ywidth
-                gnd_pos = round(vdd_pos + pitch, 3)
-                gnd_center = round(center + pitch, 3)
+                gnd_pos = round(vdd_pos + pitch, self.sig_figs)
+                gnd_center = round(center + pitch, self.sig_figs)
         else:
-            vdd_ywidth = round(self.specs['design_boundary'][1], 3)
-            vdd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), 3)
-            vdd_pos = round(center - vdd_xwidth / 2, 3)
+            vdd_ywidth = round(self.specs['design_boundary'][1], self.sig_figs)
+            vdd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[vdd_layer]['min_width']), self.sig_figs)
+            vdd_pos = round(center - vdd_xwidth / 2, self.sig_figs)
             if pair:
                 pitch = self.specs.get('strap_spacing', self.metals[vdd_layer]['pitch'])
                 gnd_xwidth = vdd_xwidth
                 gnd_ywidth = vdd_ywidth
-                gnd_pos = round(vdd_pos + pitch, 3)
-                gnd_center = round(center + pitch, 3)
+                gnd_pos = round(vdd_pos + pitch, self.sig_figs)
+                gnd_center = round(center + pitch, self.sig_figs)
         # if not pwr_obj:
         #     pwr_obj = PHYPortPin(pg_pin_dicts['pwr_pin'], vdd_layer, vdd_xwidth, vdd_ywidth, center=center)
         if not pair:
             gnd_layer = layer if layer else pg_pin_specs['gnd_pin']['layer']
             if self.metals[gnd_layer]['direction'] == 'horizontal':
-                gnd_xwidth = round(self.specs['design_boundary'][0], 3)
-                gnd_ywidth = round(pg_pin_specs.get('strap_width', self.metals[gnd_layer]['min_width']), 3)
-                gnd_pos = round(center - gnd_ywidth / 2, 3)
+                gnd_xwidth = round(self.specs['design_boundary'][0], self.sig_figs)
+                gnd_ywidth = round(pg_pin_specs.get('strap_width', self.metals[gnd_layer]['min_width']), self.sig_figs)
+                gnd_pos = round(center - gnd_ywidth / 2, self.sig_figs)
             else:
-                gnd_ywidth = round(self.specs['design_boundary'][1], 3)
-                gnd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[gnd_layer]['min_width']), 3)
-                gnd_pos = round(center - gnd_ywidth / 2, 3)
+                gnd_ywidth = round(self.specs['design_boundary'][1], self.sig_figs)
+                gnd_xwidth = round(pg_pin_specs.get('strap_width', self.metals[gnd_layer]['min_width']), self.sig_figs)
+                gnd_pos = round(center - gnd_ywidth / 2, self.sig_figs)
         # if not gnd_obj:
         #     gnd_obj = PHYPortPin(pg_pin_dicts['gnd_pin'], gnd_layer, gnd_xwidth, gnd_ywidth, center=center)
         pwr_obj.x_width = vdd_xwidth
@@ -511,15 +512,15 @@ class PinPlacer:
             layer = pin.layer
             width = pin.y_width if orientation == 'horizontal' else pin.x_width
             pitch = self.metals[layer]['pitch']
-            lower_dim = round(lower, 3)
-            upper_dim = round(lower + width, 3)
+            lower_dim = round(lower, self.sig_figs)
+            upper_dim = round(lower + width, self.sig_figs)
             if upper_dim > interval[1]:
                 return pin_list, placed_pins
             if orientation == 'horizontal':
                 pin.add_rect(layer, left_x=ref_edge, bot_y=lower_dim)
             else:
                 pin.add_rect(layer, left_x=lower_dim, bot_y=ref_edge)
-            lower = round(lower_dim + pitch, 3)
+            lower = round(lower_dim + pitch, self.sig_figs)
             placed_pins.append(pin)
         return pin_list, placed_pins
 
@@ -535,15 +536,15 @@ class PinPlacer:
             layer = pin_list[0].layer
             width = pin_list[0].y_width if orientation == 'horizontal' else pin_list[0].x_width
             n_pins = int(np.floor(interval_size / (width + spacing)))
-            leftover = round(interval_size - n_pins * (width + spacing), 3)
-            start = round(leftover / 2 + interval[0], 3)
+            leftover = round(interval_size - n_pins * (width + spacing), self.sig_figs)
+            start = round(leftover / 2 + interval[0], self.sig_figs)
             for n in range(n_pins):
                 pin = pin_list.pop(0)
                 if orientation == 'horizontal':
                     pin.add_rect(layer, left_x=ref_edge, bot_y=start)
                 else:
                     pin.add_rect(layer, left_x=start, bot_y=ref_edge)
-                start += round(width + spacing, 3)
+                start += round(width + spacing, self.sig_figs)
                 placed_pins.append(pin)
             return pin_list, placed_pins
 
@@ -552,15 +553,15 @@ class PinPlacer:
             #     pin = pin_list.pop(0)
             #     layer = pin.layer
             #     width = pin.y_width if orientation == 'horizontal' else pin.x_width
-            #     lower_dim = round(lower, 3)
-            #     upper_dim = round(lower + width, 3)
+            #     lower_dim = round(lower, self.sig_figs)
+            #     upper_dim = round(lower + width, self.sig_figs)
             #     if upper_dim > interval[1]:
             #         return pin_list, placed_pins
             #     if orientation == 'horizontal':
             #         pin.add_rect(layer, left_x=ref_edge, bot_y=lower_dim)
             #     else:
             #         pin.add_rect(layer, left_x=lower_dim, bot_y=ref_edge)
-            #     lower = round(lower_dim + width + spacing, 3)
+            #     lower = round(lower_dim + width + spacing, self.sig_figs)
             #     placed_pins.append(pin)
             # return pin_list, placed_pins
 
