@@ -89,8 +89,8 @@ class GDSDesign:
     def __init__(self, phy_design, layermap_file):
         self.phy_design = phy_design
         self.specs = phy_design.specs
-        self.gdsii = gp.GdsLibrary(phy_design.name, unit=phy_design.specs['units'],
-                                   precision=phy_design.specs['precision'])
+        self.gdsii = gp.GdsLibrary(phy_design.name, unit=phy_design.specs.data['units'],
+                                   precision=phy_design.specs.data['precision'])
         self.gds_builder = GDSBuilder(self.gdsii, mapfile=layermap_file)
         self.top_cell = gp.Cell(phy_design.name, exclude_from_current=True)
         # Fixme: Figure out why GDSLibrary is remembering cells between instances

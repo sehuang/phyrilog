@@ -35,10 +35,10 @@ class BBoxPHY(PHYDesign):
         # self.add_pin_objects()
         # self.add_pg_pin_objects()
         # self.build_design_repr()
-        self.pin_specs = {'pins':self.specs['pins'],
-                          'pg_pins': self.specs['pg_pins']}
-        # self.pin_specs = r_update(self.pin_specs, self.specs['pg_pins'])
-        self.pin_placer = PinPlacer(verilog_module.pins, verilog_module.power_pins, techfile,
+        self.pin_specs = {'pins':self.specs.data['pins'],
+                          'pg_pins': self.specs.data['pg_pins']}
+        # self.pin_specs = r_update(self.pin_specs, self.specs.data['pg_pins'])
+        self.pin_placer = PinPlacer(verilog_module.pins, verilog_module.power_pins, techfile, self.specs,
                                     pin_specs=self.pin_specs, options_dict=spec_dict)
         self.define_design_boundaries()
         self.place_pins()
@@ -46,36 +46,36 @@ class BBoxPHY(PHYDesign):
 
     @property
     def x_width(self):
-        return self.specs['design_boundary'][0]
+        return self.specs.data['design_boundary'][0]
 
     @property
     def y_width(self):
-        return self.specs['design_boundary'][1]
+        return self.specs.data['design_boundary'][1]
 
     @x_width.setter
     def x_width(self, value):
-        self.specs['design_boundary'] = (value, self.specs['design_boundary'][1])
-        self.specs['bound_box'][2] = value
+        self.specs.data['design_boundary'] = (value, self.specs.data['design_boundary'][1])
+        self.specs.data['bound_box'][2] = value
 
     @y_width.setter
     def y_width(self, value):
-        self.specs['design_boundary'] = (self.specs['design_boundary'][0], value)
-        self.specs['bound_box'][3] = value
+        self.specs.data['design_boundary'] = (self.specs.data['design_boundary'][0], value)
+        self.specs.data['bound_box'][3] = value
 
     def define_design_boundaries(self):
-        if 'y_width' in self.specs.keys() or 'x_width' in self.specs.keys():
-            x_width = self.specs.get('x_width', 0)
-            y_width = self.specs.get('y_width', 0)
-            if 'aspect_ratio' in self.specs.keys():
-                ar = self.specs['aspect_ratio']
+        if 'y_width' in self.specs.data.keys() or 'x_width' in self.specs.data.keys():
+            x_width = self.specs.data.get('x_width', 0)
+            y_width = self.specs.data.get('y_width', 0)
+            if 'aspect_ratio' in self.specs.data.keys():
+                ar = self.specs.data['aspect_ratio']
                 if y_width and not x_width:
                     x_width = round(y_width / ar[1] * ar[0], 3)
                 elif x_width and not y_width:
                     y_width = round(x_width / ar[0] * ar[1], 3)
                 else:
-                    if self.specs['x_strictness'] == self.strictness_opt[0]:
+                    if self.specs.data['x_strictness'] == self.strictness_opt[0]:
                         x_width = round(y_width / ar[1] * ar[0], 3)
-                    elif self.specs['y_strictness'] == self.strictness_opt[0]:
+                    elif self.specs.data['y_strictness'] == self.strictness_opt[0]:
                         y_width = round(x_width / ar[0] * ar[1], 3)
                     else:
                         raise ValueError(
@@ -83,7 +83,7 @@ class BBoxPHY(PHYDesign):
                             Please relax the definition or strictness for a dimension.")
 
                 if x_width < self.pin_placer.min_x_dim:
-                    if self.specs['x_strictness'] == self.strictness_opt[1]:
+                    if self.specs.data['x_strictness'] == self.strictness_opt[1]:
                         raise ValueError(
                             f'Given x width {x_width} is less than minimum x width \
                             {self.pin_placer.min_x_dim} needed to successfully place pins.\
@@ -91,7 +91,7 @@ class BBoxPHY(PHYDesign):
                     else:
                         x_width = self.pin_placer.min_x_dim
             if y_width < self.pin_placer.min_y_dim:
-                if self.specs['y_strictness'] == self.strictness_opt[1]:
+                if self.specs.data['y_strictness'] == self.strictness_opt[1]:
                     raise ValueError(
                         f'Given y width {y_width} is less than minimum y width \
                         {self.pin_placer.min_y_dim} needed to successfully place pins.\
@@ -104,24 +104,24 @@ class BBoxPHY(PHYDesign):
                                round(self.pin_placer.max_b_pin_length, 3),
                                round(x_width + self.pin_placer.max_l_pin_length, 3),
                                round(y_width + self.pin_placer.max_b_pin_length, 3)])
-            bbox = np.asarray(self.pin_placer.specs['origin'] * 2) + bbox
-            self.pin_placer.specs['internal_box'] = bbox.tolist()
-            if self.specs['pin_margin']:
+            bbox = np.asarray(self.pin_placer.specs.data['origin'] * 2) + bbox
+            self.pin_placer.specs.data['internal_box'] = bbox.tolist()
+            if self.specs.data['pin_margin']:
                 margins = np.asarray([0, 0, self.pin_placer.v_pin_pitch,
                                       self.pin_placer.h_pin_pitch])
                 inner_box = bbox + margins
-                self.pin_placer.specs['internal_box'] = inner_box.tolist()
-            self.pin_placer.specs['design_boundary'] = (round(self.pin_placer.specs['internal_box'][
+                self.pin_placer.specs.data['internal_box'] = inner_box.tolist()
+            self.pin_placer.specs.data['design_boundary'] = (round(self.pin_placer.specs.data['internal_box'][
                                                             2] + self.pin_placer.max_r_pin_length, 3),
-                                                        round(self.pin_placer.specs['internal_box'][
+                                                        round(self.pin_placer.specs.data['internal_box'][
                                                             3] + self.pin_placer.max_t_pin_length, 3))
-            self.pin_placer.specs['bound_box'] = self.pin_placer.specs['origin'] + list(self.pin_placer.specs['design_boundary'])
+            self.pin_placer.specs.data['bound_box'] = self.pin_placer.specs.data['origin'] + list(self.pin_placer.specs.data['design_boundary'])
         else:
             self.pin_placer.autodefine_boundaries()
-            self.bbox_x_width =  self.pin_placer.specs['internal_box'][2] - self.pin_placer.specs['internal_box'][0]
-            self.bbox_y_width = self.pin_placer.specs['internal_box'][3] - self.pin_placer.specs['internal_box'][1]
+            self.bbox_x_width =  self.pin_placer.specs.data['internal_box'][2] - self.pin_placer.specs.data['internal_box'][0]
+            self.bbox_y_width = self.pin_placer.specs.data['internal_box'][3] - self.pin_placer.specs.data['internal_box'][1]
         # Update local specs to reflect pin_placer specs
-        self.specs = r_update(self.specs, self.pin_placer.specs)
+        # self.specs.data = r_update(self.specs.data, self.pin_placer.specs.data)
 
     def place_pins(self):
         print(f"Begin placement iteration {self.placement_iter}...")
@@ -131,7 +131,7 @@ class BBoxPHY(PHYDesign):
         self.pg_pins = self.pin_placer.pg_pins
         self.pin_sides_dict = self.pin_placer.pin_sides_dict
         self.partitions = self.pin_placer.partitions
-        self.specs = r_update(self.specs, self.pin_placer.specs)
+        # self.specs.data = r_update(self.specs.data, self.pin_placer.specs.data)
         print(f"Pin placer finished with exit code {exit_code}")
         if exit_code:
             print("Pin placer finished unsuccessfully, redefining boundaries and trying again.")
@@ -150,14 +150,14 @@ class BBoxPHY(PHYDesign):
     def build_design_repr(self):
         bbox_layers = []
         for layer in self.metals:
-            if layer not in self.specs['exclude_layers']:
+            if layer not in self.specs.data['exclude_layers']:
                 bbox_layers.append(layer)
         self.bboxes = {
             'BBOX': PHYBBox(bbox_layers,
-                            self.specs['internal_box'][0],
-                            self.specs['internal_box'][1],
-                            self.specs['internal_box'][2],
-                            self.specs['internal_box'][3])}
+                            self.specs.data['internal_box'][0],
+                            self.specs.data['internal_box'][1],
+                            self.specs.data['internal_box'][2],
+                            self.specs.data['internal_box'][3])}
         self.polygons['bboxes'] = self.bboxes
         self.phys_objs.append(self.bboxes['BBOX'])
 
@@ -174,11 +174,11 @@ class BBoxLEFBuilder(LEFBuilder):
         name = phy_design.name
         class_line = "CLASS BLOCK"
         header_lines = self.add_lef_header(version=5.6)
-        origin_line = f"ORIGIN {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
-        foreign_line = f"FOREIGN {name} {phy_design.specs['origin'][0]} {phy_design.specs['origin'][1]}"
+        origin_line = f"ORIGIN {phy_design.specs.data['origin'][0]} {phy_design.specs.data['origin'][1]}"
+        foreign_line = f"FOREIGN {name} {phy_design.specs.data['origin'][0]} {phy_design.specs.data['origin'][1]}"
         size_line = f"SIZE {phy_design.x_width} BY {phy_design.y_width}"
-        sym_line = f"SYMMETRY {phy_design.specs['symmetry']}"
-        site_line = f"SITE {phy_design.specs['site']}"
+        sym_line = f"SYMMETRY {phy_design.specs.data['symmetry']}"
+        site_line = f"SITE {phy_design.specs.data['site']}"
 
         self.lines += header_lines
         self.lines += '\n'

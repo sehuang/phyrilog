@@ -1,5 +1,7 @@
 import json
 import numpy as np
+from specification import Specification
+from utilities import *
 
 class Rectangle:
     """
@@ -413,11 +415,11 @@ class PHYDesign:
                                                  'center': None,
                                                  'side': 'top'}}
                          }
-        self.specs = self.defaults
+        self.specs = Specification(self.defaults)
         if spec_dict:
-            self.specs.update(spec_dict)
-        self.x_width = self.specs.get('xwidth', None)
-        self.y_width = self.specs.get('ywidth', None)
+            self.specs.data = r_update(self.specs.data, spec_dict)
+        self.x_width = self.specs.data.get('xwidth', None)
+        self.y_width = self.specs.data.get('ywidth', None)
         # self.aspect_ratio = self.specs_dict.get('aspect_ratio', None)
         self.polygons = {'pins': self.pins,
                          'pg_pins': self.pg_pins}
@@ -442,9 +444,9 @@ class PHYDesign:
         """
         power_pin_name = self.verilog_pg_pin_dict['power_pin']
         ground_pin_name = self.verilog_pg_pin_dict['ground_pin']
-        pg_pin_specs = self.specs['pg_pins']
-        pwr_pin_specs = self.specs['pg_pins']['pwr_pin']
-        gnd_pin_specs = self.specs['pg_pins']['gnd_pin']
+        pg_pin_specs = self.specs.data['pg_pins']
+        pwr_pin_specs = self.specs.data['pg_pins']['pwr_pin']
+        gnd_pin_specs = self.specs.data['pg_pins']['gnd_pin']
 
 
 
@@ -452,23 +454,23 @@ class PHYDesign:
             if not pwr_pin_specs.get('xwidth', None):
                 pwr_pin_specs['xwidth'] = self.metals[pg_pin_specs['v_layer']]['min_width']
             if not pwr_pin_specs.get('ywidth', None):
-                pwr_pin_specs['ywidth'] = self.specs['pins']['pin_length']
+                pwr_pin_specs['ywidth'] = self.specs.data['pins']['pin_length']
         else:
             if not pwr_pin_specs.get('ywidth', None):
                 pwr_pin_specs['ywidth'] = self.metals[pg_pin_specs['v_layer']]['min_width']
             if not pwr_pin_specs.get('xwidth', None):
-                pwr_pin_specs['xwidth'] = self.specs['pins']['pin_length']
+                pwr_pin_specs['xwidth'] = self.specs.data['pins']['pin_length']
 
         if gnd_pin_specs['side'] == 'top' or gnd_pin_specs['side'] == 'bottom':
             if not gnd_pin_specs.get('xwidth', None):
                 gnd_pin_specs['xwidth'] = self.metals[gnd_pin_specs['h_layer']]['min_width']
             if not gnd_pin_specs.get('ywidth', None):
-                gnd_pin_specs['ywidth'] = self.specs['pins']['pin_length']
+                gnd_pin_specs['ywidth'] = self.specs.data['pins']['pin_length']
         else:
             if not gnd_pin_specs.get('ywidth', None):
                 gnd_pin_specs['ywidth'] = self.metals[gnd_pin_specs['h_layer']]['min_width']
             if not gnd_pin_specs.get('xwidth', None):
-                gnd_pin_specs['xwidth'] = self.specs['pins']['pin_length']
+                gnd_pin_specs['xwidth'] = self.specs.data['pins']['pin_length']
 
         pwr_pin_dict = {'name': power_pin_name,
                         'direction': 'inout',
@@ -497,7 +499,7 @@ class PHYDesign:
         self.n_inputs = 0
         self.n_outputs = 0
         for pin_name, pin_info in self.verilog_pin_dict.items():
-            pin_spec = self.specs['pins'].get(pin_name, None)
+            pin_spec = self.specs.data['pins'].get(pin_name, None)
             direction = pin_info['direction']
             # Pin side definitions
             if pin_spec:
@@ -505,26 +507,26 @@ class PHYDesign:
             else:
                 side = None
             if not side:
-                side = self.specs.get(f'{direction}_side', None)
+                side = self.specs.data.get(f'{direction}_side', None)
             if not side:
-                side = self.specs['input_side'] if direction == 'input' else self.specs['output_side']
+                side = self.specs.data['input_side'] if direction == 'input' else self.specs.data['output_side']
 
             # Pin Layer definitions
             if side == 'left' or side == 'right':
-                layer = self.specs['pins']['h_layer']
+                layer = self.specs.data['pins']['h_layer']
                 if pin_spec:
-                    x_width = pin_spec.get('x_width', self.specs['pins']['pin_length'])
+                    x_width = pin_spec.get('x_width', self.specs.data['pins']['pin_length'])
                     y_width = pin_spec.get('y_width', self.metals[layer]['min_width'])
                 else:
-                    x_width = self.specs['pins']['pin_length']
+                    x_width = self.specs.data['pins']['pin_length']
                     y_width = self.metals[layer]['min_width']
             else:
-                layer = self.specs['pins']['v_layer']
+                layer = self.specs.data['pins']['v_layer']
                 if pin_spec:
-                    x_width = pin_spec.get('x_width', self.specs['pins']['pin_length'])
+                    x_width = pin_spec.get('x_width', self.specs.data['pins']['pin_length'])
                     y_width = pin_spec.get('y_width', self.metals[layer]['min_width'])
                 else:
-                    x_width = 'x_width', self.specs['pins']['pin_length']
+                    x_width = 'x_width', self.specs.data['pins']['pin_length']
                     y_width = 'y_width', self.metals[layer]['min_width']
             if pin_info.get('is_bus', None):
                 self.n_inputs += (direction == 'input') * (pin_info['bus_max'] + 1)
