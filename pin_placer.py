@@ -787,25 +787,6 @@ class PinPlacer:
                 placed_pins.append(pin)
             return pin_list, placed_pins
 
-            # lower = interval[0]
-            # while lower < interval[1] and pin_list:
-            #     pin = pin_list.pop(0)
-            #     layer = pin.layer
-            #     width = pin.y_width if orientation == 'horizontal' else pin.x_width
-            #     lower_dim = round(lower, self.sig_figs)
-            #     upper_dim = round(lower + width, self.sig_figs)
-            #     if upper_dim > interval[1]:
-            #         return pin_list, placed_pins
-            #     if orientation == 'horizontal':
-            #         pin.add_rect(layer, left_x=ref_edge, bot_y=lower_dim)
-            #     else:
-            #         pin.add_rect(layer, left_x=lower_dim, bot_y=ref_edge)
-            #     lower = round(lower_dim + width + spacing, self.sig_figs)
-            #     placed_pins.append(pin)
-            # return pin_list, placed_pins
-
-    # def _wraparound_place_engine(self):
-
     def place_pins(self):
         """
         Master method to perform all the steps in pin placement.

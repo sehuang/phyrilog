@@ -5,6 +5,21 @@ from pin_placer import *
 
 
 class PHYBBox(PHYObject):
+    """
+    Special PHYObject methods for black-boxing.
+
+    Parameters
+    ----------
+    layers : list[str]
+    left_x : float
+        Left x-coordinate.
+    bot_y : float
+        Bottom y-coordinate.
+    right_x : float
+        Right x-coordinate.
+    top_y : float
+        Top y-coordinate.
+    """
     def __init__(self, layers, left_x, bot_y, right_x, top_y):
         super().__init__("BBOX")
         self.purpose = 'blockage'
@@ -12,17 +27,85 @@ class PHYBBox(PHYObject):
             self.add_rect(layer, left_x, bot_y, right_x, top_y)
 
     def add_rect(self, layer, left_x=0, bot_y=0, right_x=0, top_y=0, purpose=['blockage']):
+        """
+        Add Rectangle object.
+        Parameters
+        ----------
+        layer : str
+            Layer of Rectangle.
+        left_x : float
+            Left x-coordinate.
+        bot_y : float
+            Bottom y-coordinate.
+        right_x : float
+            Right x-coordinate.
+        top_y : float
+            Top y-coordinate.
+        purpose : List[str]
+            List of layer purposes. Default is 'blockage'.
+
+        Returns
+        -------
+
+        """
         rect_obj = Rectangle(layer, left_x, bot_y, right_x, top_y, purpose=purpose)
         self.phys_objs.append(rect_obj)
         self.rects[rect_obj.centroid] = rect_obj
 
     def scale(self, scale_factor):
+        """
+        Scales all physical object dimensions.
+        Parameters
+        ----------
+        scale_factor : float
+            Factor to scale all physical objects.
+
+        Returns
+        -------
+
+        """
         for rect in self.phys_objs:
             rect.scale(scale_factor)
 
 class BBoxPHY(PHYDesign):
-    """Black-boxed LEF object. This class describes LEF stuff"""
+    """
+    Black-box PHYDesign subclass. Contains special methods for generating
+    black box designs.
+    Parameters
+    ----------
+    verilog_module : VerilogModule
+        VerilogModule object that will be processed into a PHYDesign.
+    techfile : str, Path
+        Path to the HAMMER tech.json for the technology the PHYDesign is to
+        be made in.
+    spec_dict : dict
+        Dictionary of options and specifications for the design. Please
+        consult spec_dict_schema.yaml for an example of the spec_dict
+        schema.
 
+    Attributes
+    ----------
+    verilog_pin_dict : dict
+        Copy of VerilogModule pin dictionary.
+    verilog_pg_pin_dict : dict
+        Copy of VerilogModule PG pin dictionary.
+    name : str
+        Name of the module.
+    spec_dict : dict
+        Input specification dictionary.
+    pins : list[PHYPortPin]
+        List of PortPin physical objects in this design.
+    pg_pins : list[PHYPortPin]
+        List of PortPin PG pin physical objects in this design.
+    defaults : dict
+        Default specifications to be overwritten.
+    specs : Specification
+        Specification() object used as common location to find spec dict.
+    x_width
+    y_width
+    polygons : dict
+        Flat hierarchy dictionary of polygons in design.
+    """
     def __init__(self, verilog_module, techfile, spec_dict=None):
         self.strictness_opt = ['flexible', 'strict']
         self.bbox_defaults = {'aspect_ratio_strictness': 'strict',
