@@ -44,3 +44,42 @@ def get_orientation(side):
         return 'vertical'
     else:
         raise ValueError("Invalid side name")
+
+def strip_comments(line_list):
+    """Removes comments from lines."""
+    import re
+    new_line_list = []
+    multiline_comment = False
+
+    # Precompile RegEx patterns
+    slineA = re.compile("//")
+    slineB = re.compile("/\*[\w\W]+\*/")
+    mline_begin = re.compile("/\*")
+    mline_end =  re.compile("\*/")
+    empty = re.compile("(?![\s\S])")
+
+    # Line-by-line Comment Filter
+    for line in line_list:
+        # Remove single line comment
+        if re.search(slineA, line):
+            continue
+        # Remove single line comment defined with /* ... */ syntax
+        elif re.match(slineB, line):
+            continue
+        # Remove first line of multiline comment and begin tracking
+        elif re.search(mline_begin, line):
+            multiline_comment = True
+            continue
+        # Remove lines that are in the body of the multiline comment
+        elif multiline_comment and not re.search(mline_end, line):
+            continue
+        # Remove last line of multiline commend and stop tracking
+        elif re.search(mline_end, line):
+            multiline_comment = False
+            continue
+        # Remove empty lines
+        elif re.match(empty, line):
+            continue
+        else:
+            new_line_list.append(line)
+    return new_line_list
