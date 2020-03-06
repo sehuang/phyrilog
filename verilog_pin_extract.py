@@ -444,10 +444,13 @@ class VerilogModule:
         # pins_str_list = pins_str_match[0].split(',')
 
         def_list = []
+        in_pattern = re.compile('^\s*input')
+        out_pattern = re.compile('^\s*output')
+        end_pattern = re.compile('^\s*endmodule')
         for line in use_line_list:
-            if 'input' in line or 'output' in line:
+            if re.match(in_pattern, line) or re.match(out_pattern, line):
                 def_list.append(line)
-            if 'endmodule' in line:
+            if re.match(end_pattern, line):
                 break
 
         for pin in def_list:
@@ -455,7 +458,7 @@ class VerilogModule:
             # name = re.match(r'\w', parts[-1]).string
             # name = parts[-1]
             direction = parts[0]
-            bus_idx = re.findall(r"\[.*\]", pin)
+            bus_idx = re.findall(r"\[[0-9]+:[0-9]+\]", pin)
             is_bus = len(bus_idx) > 0
             names = []
             for part in parts[1:]:
@@ -489,6 +492,8 @@ class VerilogModule:
 
         """
 
+        if isinstance(clocks, str):
+            clocks = [clocks]
         for clk_name in clocks:
             re_pattern = re.compile(clk_name + "[_\w]*")
             for pin_name in self.pins.keys():
