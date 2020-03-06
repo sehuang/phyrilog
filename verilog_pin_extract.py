@@ -137,6 +137,7 @@ class VerilogModule:
         self.seq_pins = {}
         self.filename = filename
         self.ww = WhenWriter()
+        self.pin_name_list = None
 
         top_line_no = self._get_top_module_line_no(line_list, top)
         pin_def_list = self._get_pin_def_list(line_list, top_line_no)
@@ -152,6 +153,15 @@ class VerilogModule:
 
         self._get_clock(clocks)
         self._get_seq_pins(seq_pins)
+
+    @property
+    def pin_names(self):
+        if not self.pin_name_list:
+            self.pin_name_list = []
+            for pin in self.pins.keys():
+                self.pin_name_list.append(pin)
+        return self.pin_name_list
+
 
     def _get_top_module_line_no(self, line_list, top):
         """Finds the beginning of the module definition.
