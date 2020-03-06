@@ -26,8 +26,8 @@ input 	[`numAddr-1:0] 		A;
 input 	[`wordLength-1:0] 	I;
 output 	[`wordLength-1:0] 	O;
 
-/*reg   [`wordLength-1:0]   	memory[`numWords-1:0];*/
-/*reg  	[`wordLength-1:0]	data_out;*/
+// reg   [`wordLength-1:0]   	memory[`numWords-1:0];
+reg  	[`wordLength-1:0]	data_out;
 wire 	[`wordLength-1:0] 	O;
 
 wire 				RE;
@@ -70,16 +70,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -198,16 +198,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -328,16 +328,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -418,16 +418,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -629,16 +629,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -743,16 +743,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -871,16 +871,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -1001,16 +1001,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -1091,16 +1091,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -1223,16 +1223,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -1433,16 +1433,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -1547,16 +1547,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -1637,16 +1637,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -1847,16 +1847,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -1961,16 +1961,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -2077,16 +2077,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -2167,16 +2167,16 @@ and u1 (RE, ~CSB_i,  WEB_i);
 and u2 (WE, ~CSB_i, ~WEB_i);
 
 
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (RE)
 		data_out = memory[A_i];
-always @ (posedge CE_i) 
+always @ (posedge CE_i)
 	if (WE)
 		memory[A_i] = I_i;
-		
+
 
 always @ (data_out or OEB_i)
-	if (!OEB_i) 
+	if (!OEB_i)
 		O_i = data_out;
 	else
 		O_i =  1'bz;
@@ -2226,10 +2226,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW128x16_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -2281,30 +2281,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -2351,10 +2351,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW128x32_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -2422,30 +2422,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -2492,10 +2492,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW128x4_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -2535,30 +2535,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -2605,10 +2605,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW128x8_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -2652,30 +2652,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -2722,10 +2722,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW16x16_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -2777,30 +2777,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -2847,10 +2847,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW16x32_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -2918,30 +2918,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -2988,10 +2988,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW16x4_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -3031,30 +3031,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -3101,10 +3101,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW16x8_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -3148,30 +3148,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -3218,10 +3218,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW32x16_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -3273,30 +3273,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -3343,10 +3343,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW32x22_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -3404,30 +3404,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -3474,10 +3474,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW32x32_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -3545,30 +3545,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -3615,10 +3615,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW32x39_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -3693,30 +3693,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -3763,10 +3763,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW32x4_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -3806,30 +3806,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -3876,10 +3876,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW32x8_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -3923,30 +3923,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -3993,10 +3993,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW64x16_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -4048,30 +4048,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -4118,10 +4118,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW64x32_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -4189,30 +4189,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -4259,10 +4259,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW64x4_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -4302,30 +4302,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;
@@ -4372,10 +4372,10 @@ output 	[`wordLength-1:0] 	O2;
 /*reg  	[`wordLength-1:0]	data_out2;*/
 wire 	[`wordLength-1:0] 	O1;
 wire  	[`wordLength-1:0]	O2;
-	
+
 wire 				RE1;
-wire 				RE2;	
-wire 				WE1;	
+wire 				RE2;
+wire 				WE1;
 wire 				WE2;
 
 SRAM2RW64x8_1bit sram_IO0 ( CE1, CE2, WEB1, WEB2,  A1, A2, OEB1, OEB2, CSB1, CSB2, I1[0], I2[0], O1[0], O2[0]);
@@ -4419,30 +4419,30 @@ and u4 (WE2, ~CSB2_i, ~WEB2_i);
 
 //Primary ports
 
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (RE1)
 		data_out1 = memory[A1_i];
-always @ (posedge CE1_i) 
+always @ (posedge CE1_i)
 	if (WE1)
 		memory[A1_i] = I1_i;
-		
+
 
 always @ (data_out1 or OEB1_i)
-	if (!OEB1_i) 
+	if (!OEB1_i)
 		O1_i = data_out1;
 	else
 		O1_i =  1'bz;
 
-//Dual ports	
+//Dual ports
 always @ (posedge CE2_i)
   	if (RE2)
 		data_out2 = memory[A2_i];
 always @ (posedge CE2_i)
 	if (WE2)
 		memory[A2_i] = I2_i;
-		
+
 always @ (data_out2 or OEB2_i)
-	if (!OEB2_i) 
+	if (!OEB2_i)
 		O2_i = data_out2;
 	else
 		O2_i = 1'bz;

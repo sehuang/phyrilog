@@ -2,6 +2,8 @@ import re
 import operator
 import ast
 import json
+from verilog_tree_builder import *
+
 
 class NameLookup(ast.NodeTransformer):
     """NodeTransformer object that replaces all variables in bus index expressions with a corresponding param dictionary
@@ -11,10 +13,11 @@ class NameLookup(ast.NodeTransformer):
         return ast.copy_location(ast.Subscript(
             value=ast.Attribute(value=ast.Name(
                 id='self', ctx=ast.Load()),
-            attr='params', ctx=ast.Load()),
+                attr='params', ctx=ast.Load()),
             slice=ast.Index(value=ast.Str(s=node.id), ctx=ast.Load()),
             ctx=ast.Load()
         ), node)
+
 
 class WhenWriter(ast.NodeVisitor):
 
@@ -56,6 +59,7 @@ class WhenWriter(ast.NodeVisitor):
     @property
     def sdf_expr(self):
         return " & ".join(self.sdf_list)
+
 
 class NameUpdate(ast.NodeTransformer):
 
@@ -121,12 +125,12 @@ class VerilogModule:
 
     """
 
-    def __init__(self, top, VDD='VDD', VSS='VSS', filename=None, constfile=None, clocks=('clock', 'clk'), seq_pins=(('', 'clock', 'when'))):
+    def __init__(self, top, VDD='VDD', VSS='VSS', filename=None, constfile=None, clocks=('clock', 'clk'), seq_pins=()):
         with open(filename, 'r') as file:
             line_list = [line.rstrip('\n') for line in file]
         if constfile:
             with open(constfile, 'r') as file:
-                self.constfile_list =  self._strip_comments([line.rstrip('\n') for line in file])
+                self.constfile_list = self._strip_comments([line.rstrip('\n') for line in file])
         else:
             self.constfile_list = None
 
@@ -138,7 +142,19 @@ class VerilogModule:
         self.filename = filename
         self.ww = WhenWriter()
 
-        top_line_no = self._get_top_module_line_no(line_list, top)
+        if isinstance(filename, list):
+            for fname in filename:
+                with open(fname, 'r') as file:
+                    line_list = [line.rstrip('\n') for line in file]
+                try:
+                    top_line_no = self._get_top_module_line_no(line_list, top)
+                    break
+                except:
+                    continue
+        else:
+            top_line_no = self._get_top_module_line_no(line_list, top)
+        self.top_line = top_line_no
+        self.line_list = line_list
         pin_def_list = self._get_pin_def_list(line_list, top_line_no)
         self._check_for_definitions(pin_def_list, top_line_no, line_list)
         # self._parse_pin_def_list(pin_def_list)
@@ -151,7 +167,13 @@ class VerilogModule:
                                 'pins': self.pins}
 
         self._get_clock(clocks)
-        self._get_seq_pins(seq_pins)
+        if seq_pins:
+            self._get_seq_pins(seq_pins)
+        if not isinstance(filename, list):
+            fname = [filename]
+        else:
+            fname = filename
+        self._get_all_module_names(fname)
 
     def _get_top_module_line_no(self, line_list, top):
         """Finds the beginning of the module definition.
@@ -187,7 +209,7 @@ class VerilogModule:
                 end_idx = line_list[top_line_no:].index(line)
                 break
         if end_idx == 0:
-            end_idx += 1 # THIS IS A HACK, DO THIS BETTER NEXT TIME
+            end_idx += 1  # THIS IS A HACK, DO THIS BETTER NEXT TIME
         pin_def_list = self._strip_comments(line_list[top_line_no:top_line_no + end_idx])
         return pin_def_list
 
@@ -280,7 +302,7 @@ class VerilogModule:
             for param in params_list:
                 parts = param.split()
                 param_name = parts[1]
-                param_val = re.findall(r'\d+',parts[-1])[0]
+                param_val = re.findall(r'\d+', parts[-1])[0]
                 self.params[param_name] = int(param_val)
         else:
             params_str = ""
@@ -341,14 +363,14 @@ class VerilogModule:
         if not limits[0].isdigit():
             try:
                 bus_max = self.params[limits[0]]
-            except KeyError: # Max index is probably an operation
+            except KeyError:  # Max index is probably an operation
                 bus_max = self._eval_param_op(limits[0])
         else:
             bus_max = int(limits[0])
         if not limits[1].isdigit():
             try:
                 bus_min = self.params[limits[1]]
-            except KeyError: # Min index is probably an operation
+            except KeyError:  # Min index is probably an operation
                 bus_min = self._eval_param_op(limits[1])
         else:
             bus_min = int(limits[1])
@@ -390,6 +412,10 @@ class VerilogModule:
                 direction = parts[0]
             except:
                 continue
+            if re.search('reg', pin):
+                seq = True
+            else:
+                seq = False
             # name = re.match(r'\w', parts[-1]).string
             name = parts[-1]
             bus_idx = re.findall(r"\[.*\]", pin)
@@ -403,7 +429,8 @@ class VerilogModule:
             for name in names:
                 pin_info = {"name": name,
                             "direction": direction,
-                            "is_analog": False
+                            "is_analog": False,
+                            "sequential": seq
                             }
                 if is_bus:
                     bus_lim_dict = self._bus_parser(bus_idx[0])
@@ -455,6 +482,10 @@ class VerilogModule:
             # name = re.match(r'\w', parts[-1]).string
             # name = parts[-1]
             direction = parts[0]
+            if re.search('reg', pin):
+                seq = True
+            else:
+                seq = False
             bus_idx = re.findall(r"\[.*\]", pin)
             is_bus = len(bus_idx) > 0
             names = []
@@ -467,7 +498,8 @@ class VerilogModule:
                 name = re.sub('[\W]+', '', name)
                 pin_info = {"name": name,
                             "direction": direction,
-                            "is_analog": False
+                            "is_analog": False,
+                            "sequential": seq,
                             }
                 if is_bus:
                     bus_lim_dict = self._bus_parser(bus_idx[0])
@@ -540,8 +572,126 @@ class VerilogModule:
                     self.seq_pins[pin_name] = self.pins[re_name]
                     self.ww.clear()
 
+    def _get_module_line_list(self, top_line_no, line_list):
+        keep_list = []
+        idx = top_line_no
+        cur_line = line_list[idx]
+        while (not re.search('endmodule', cur_line)):
+            keep_list.append(cur_line)
+            idx += 1
+            cur_line = line_list[idx]
+        return keep_list
+
+    def _get_all_module_names(self, filenames):
+        self.modules = {}
+        mod_name_pattern = re.compile('(?<=module )[\w]+')
+        for filename in filenames:
+            with open(filename, 'r') as file:
+                for line in file:
+                    if re.match('module', line):
+                        self.modules[re.search(mod_name_pattern, line)[0]] = filename
+
+    def build_tree(self):
+        mod_line_list = self._get_module_line_list(self.top_line, self.line_list)
+        mod_line_list = self._strip_comments(mod_line_list)
+        tree = {}
+        tree[self.name] = {'ports': self.pins, }
+        wires, modules, always = self._parse_module(self.name)
+        tree[self.name].update({'wires': wires,
+                                'always': always,
+                                'modules': modules})
+        cur_lvl = [tree[self.name]]
 
 
+        #Fixme: This recursion loop is broken
+        while cur_lvl:
+            for mod_class, mod_list in cur_lvl['modules'].items():
+                for module in mod_list.keys():
+                    wires, modules, always = self._parse_module(mod_class)
+                    for name in cur_lvl[mod_class].keys():
+                        cur_lvl['modules'][mod_class][name].update({'wires': wires,
+                                                                            'always': always,
+                                                                            'modules': modules})
+                cur_lvl = cur_lvl[mod_class]
+        5
+
+    def _parse_module(self, mod_class):
+        filename = self.modules[mod_class]
+        with open(filename, 'r') as file:
+            line_list = [line.rstrip('\n') for line in file]
+        top_line = self._get_top_module_line_no(line_list, mod_class)
+        mod_line_list = self._get_module_line_list(top_line, line_list)
+        mod_line_list = self._strip_comments(mod_line_list)
+        wires = {}
+        modules = {}
+        always = []
+        a_flag = False
+
+        for line in mod_line_list:
+            if re.search('wire', line) or re.search('reg', line):
+                # wires.append(line)
+                self._build_wire_dict(line, wires)
+            if re.search('always', line):
+                a_flag = True
+                al_block = []
+                al_block.append(line)
+            if a_flag and re.search('end', line):
+                a_flag = False
+                al_block.append(line)
+                always.append(al_block)
+                al_block = []
+            if a_flag:
+                al_block.append(line)
+            if line.split()[0] in self.modules.keys():
+                # modules.append(line)
+                self._build_module_dict(line, modules)
+
+        return wires, modules, always
+
+    def _build_wire_dict(self, wire, wires):
+        parts = wire.split()
+        # name = re.match(r'\w', parts[-1]).string
+        # name = parts[-1]
+        if re.search('reg', wire):
+            seq = True
+        else:
+            seq = False
+        bus_idx = re.findall(r"\[.*\]", wire)
+        is_bus = len(bus_idx) > 0
+        names = []
+        for part in parts[1:]:
+            if '[' in part or ']' in part:
+                continue
+            else:
+                names.append(part)
+        for name in names:
+            name = re.sub('[\W]+', '', name)
+            pin_info = {"name": name,
+                        "sequential": seq,
+                        }
+            if is_bus:
+                bus_lim_dict = self._bus_parser(bus_idx[0])
+                pin_info.update(bus_lim_dict)
+
+            wires[name] = pin_info
+
+    def _build_module_dict(self, module, modules):
+        parts = module.split()
+        module_class = parts[0]
+        class_dict = {}
+        name = parts[1]
+        if re.search('\([\s\S]+\)', parts[1]):
+            ports = re.search('\([\s\S]+\)[\s]*;', parts[1])[0]
+            name = name.replace(ports, '')
+        else:
+            ports = " ".join(parts[2:])
+        ports = re.search('[\S\s]+(?=\))', re.search('(?<=\()[\S\s]+', ports)[0])[0]
+        if re.search('\.', ports):
+            raise NotImplementedError("Port Mapping by Name not currently supported.")
+        ports = [port.strip() for port in ports.split(',')]
+        if module_class not in modules.keys():
+            modules[module_class] = {}
+        modules[module_class][name] = {'ports': ports}
 
     def write_pin_json(self, filename, pin_specs):
         """Serializes self.pins to a JSON file.
@@ -565,14 +715,14 @@ class VerilogModule:
         json_dict = {'name': self.name,
                      'revision': 0,
                      'cells': [{'name': self.name,
-                               'pins': [],
-                               'pg_pins': []}],
+                                'pins': [],
+                                'pg_pins': []}],
                      }
         all_pins_specs = pin_specs['all_pins']
         for pin_name, pin_dict in self.pins.items():
             this_pin_specs = pin_specs.get(pin_name, dict())
             pin_dict.update(all_pins_specs)
-            pin_dict.update(this_pin_specs) # specific pin specs take precedence
+            pin_dict.update(this_pin_specs)  # specific pin specs take precedence
             # pin_dict['related_power_pin'] = pin_dict.pop('power_pin')
             # pin_dict['related_ground_pin'] = pin_dict.pop('ground_pin')
             json_dict['cells'][0]['pins'].append(pin_dict)
@@ -584,6 +734,4 @@ class VerilogModule:
             json_dict['cells'][0]['pg_pins'] = pg_pins
 
             with open(filename, 'w') as json_file:
-                json.dump(json_dict,json_file)
-
-
+                json.dump(json_dict, json_file)
