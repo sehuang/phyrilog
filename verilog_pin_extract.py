@@ -447,9 +447,15 @@ class VerilogModule:
         in_pattern = re.compile('^\s*input')
         out_pattern = re.compile('^\s*output')
         end_pattern = re.compile('^\s*endmodule')
+        pin_def_list_bk = pin_def_list
         for line in use_line_list:
+            if not pin_def_list:
+                break
             if re.match(in_pattern, line) or re.match(out_pattern, line):
                 def_list.append(line)
+                partitions = line.split()
+                if partitions[-1] in pin_def_list:
+                    pin_def_list.remove(partitions[-1])
             if re.match(end_pattern, line):
                 break
 

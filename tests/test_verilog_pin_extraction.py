@@ -7,5 +7,5 @@ def test_sds(top):
 	pprint.pprint(design.pins)
 
 if __name__=='__main__':
-	mod = VerilogModule('Memory141', filename='Memory141.v', constfile='const.vh')
+	mod = VerilogModule('Memory141', filename='Memory141.v', constfile='const.vh', seq_pins=[])
 	pprint.pprint(mod.ports_json_dict)
