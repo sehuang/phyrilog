@@ -15,3 +15,4 @@ if __name__ == '__main__':
 
     sram = VerilogModule("SRAM1RW1024x8", filename=behav_model, clocks=('clock'), seq_pins=[])
     pprint.pprint(sram.ports_json_dict)
+    pprint.pprint(sram.pin_names)

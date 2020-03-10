@@ -21,3 +21,43 @@ module TestParamsAndPorts#(
     output [BITS-1:0] sum
 );
 endmodule : TestParamsAndPorts
+module TestDummifier(
+    input a,
+    input b,
+    input c,
+    output d,
+    output e,
+    output f
+);
+    wire A;
+    wire B;
+    wire C;
+    wire D;
+    wire E;
+
+    assign d = D;
+    assign f = c | E;
+
+    random_gate dim1 (
+        .ina(A),
+        .inb(B),
+        .inc(C),
+        .outd(D)
+    );
+
+    dummya da (
+        .wow(A),
+        .thi(B),
+        .actually(C),
+        .works(D),
+        .somehow(E)
+    );
+
+    dummyb Db (
+        .awow(a),
+        .athi(b),
+        .aactually(c),
+        .aworks(D),
+        .asomehow(E)
+    );
+endmodule : TestDummifier

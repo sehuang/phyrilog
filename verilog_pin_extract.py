@@ -136,12 +136,13 @@ class VerilogModule:
         self.clocks = {}
         self.seq_pins = {}
         self.filename = filename
+        self.constfile = constfile
         self.ww = WhenWriter()
         self.pin_name_list = None
 
-        top_line_no = self._get_top_module_line_no(line_list, top)
-        pin_def_list = self._get_pin_def_list(line_list, top_line_no)
-        self._check_for_definitions(pin_def_list, top_line_no, line_list)
+        self.top_line_no = self._get_top_module_line_no(line_list, top)
+        pin_def_list = self._get_pin_def_list(line_list, self.top_line_no)
+        self._check_for_definitions(pin_def_list, self.top_line_no, line_list)
         # self._parse_pin_def_list(pin_def_list)
         self.power_pins = {"power_pin": VDD,
                            "ground_pin": VSS}
@@ -162,6 +163,14 @@ class VerilogModule:
                 self.pin_name_list.append(pin)
         return self.pin_name_list
 
+    @property
+    def line_list(self):
+        with open(self.filename, 'r') as file:
+            line_list = [line.rstrip('\n') for line in file]
+        for line in line_list[self.top_line_no:]:
+            if 'endmodule' in line:
+                end_idx = line_list.index(line) + 1
+        return line_list[self.top_line_no:end_idx]
 
     def _get_top_module_line_no(self, line_list, top):
         """Finds the beginning of the module definition.
