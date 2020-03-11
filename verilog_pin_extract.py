@@ -172,6 +172,10 @@ class VerilogModule:
                 end_idx = line_list.index(line) + 1
         return line_list[self.top_line_no:end_idx]
 
+    @property
+    def clean_line_list(self):
+        return self._strip_comments(self.line_list)
+
     def _get_top_module_line_no(self, line_list, top):
         """Finds the beginning of the module definition.
 
