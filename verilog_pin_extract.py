@@ -1,7 +1,10 @@
 import re
 import operator
+import subprocess, shutil
 import ast
 import json
+import time
+
 
 class NameLookup(ast.NodeTransformer):
     """NodeTransformer object that replaces all variables in bus index expressions with a corresponding param dictionary
@@ -140,9 +143,10 @@ class VerilogModule:
         self.ww = WhenWriter()
         self.pin_name_list = None
 
-        self.top_line_no = self._get_top_module_line_no(line_list, top)
-        pin_def_list = self._get_pin_def_list(line_list, self.top_line_no)
-        self._check_for_definitions(pin_def_list, self.top_line_no, line_list)
+        clean_line_list = self._strip_comments(line_list)
+        self.top_line_no = self._get_top_module_line_no(clean_line_list, top)
+        pin_def_list = self._get_pin_def_list(clean_line_list, self.top_line_no)
+        self._check_for_definitions(pin_def_list, self.top_line_no, clean_line_list)
         # self._parse_pin_def_list(pin_def_list)
         self.power_pins = {"power_pin": VDD,
                            "ground_pin": VSS}
@@ -172,6 +176,10 @@ class VerilogModule:
                 end_idx = line_list.index(line) + 1
         return line_list[self.top_line_no:end_idx]
 
+    @property
+    def clean_line_list(self):
+        return self._strip_comments(self.line_list)
+
     def _get_top_module_line_no(self, line_list, top):
         """Finds the beginning of the module definition.
 
@@ -191,6 +199,16 @@ class VerilogModule:
             "module <top>")
 
         """
+
+        # test_str = 'module ' + top
+        # LogCheck = subprocess.Popen(['grep', '-nm 1', test_str, self.filename],
+        #                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        # stdout, stderr = LogCheck.communicate()
+        # if stdout.decode():
+        #     line = stdout.decode()
+        #     return int(line.split(":")[0])
+        # else:
+        #     raise NameError(f"Could not find module name {top} in {self.filename}.")
 
         checkstr = "module " + top
         for line in line_list:
@@ -225,25 +243,14 @@ class VerilogModule:
             List of lines with comments and empty lines removed.
 
         """
-        new_line_list = []
-        multiline_comment = False
-        for line in line_list:
-            if re.search("//", line):
-                continue
-            elif re.match("/\*[\w\W]+\*/", line):
-                continue
-            elif re.search("/\*", line):
-                multiline_comment = True
-                continue
-            elif multiline_comment and not re.search("\*/", line):
-                continue
-            elif re.search("\*/", line):
-                multiline_comment = False
-                continue
-            elif re.match("(?![\s\S])", line):
-                continue
-            else:
-                new_line_list.append(line)
+        big_str = "(EOL)".join(line_list)
+        slc_pattern = re.compile('\/\/[\s\S]*?(\(EOL\))')
+        slc2_pattern = re.compile('\/\*[\s\S]*?\*\/(\(EOL\))')
+        empty_pattern = re.compile('(?<=\(EOL\))(\(EOL\))')
+        big_str = re.sub(slc_pattern, '', big_str)
+        big_str = re.sub(slc2_pattern, '', big_str)
+        big_str = re.sub(empty_pattern, '', big_str)
+        new_line_list = big_str.split("(EOL)")
         return new_line_list
 
     def _check_for_definitions(self, pin_def_list, top_line_no, line_list):
@@ -449,7 +456,7 @@ class VerilogModule:
 
         """
         use_line_list = line_list[top_line_no:]
-        pin_def_list = self._get_pin_def_list(line_list, top_line_no)
+        pin_def_list = self._get_pin_def_list(line_list, top_line_no)[1:]
         if len(pin_def_list) == 1:
             pins_str = pin_def_list[0]
         else:
@@ -463,20 +470,16 @@ class VerilogModule:
         # pins_str_list = pins_str_match[0].split(',')
 
         def_list = []
-        in_pattern = re.compile('^\s*input')
-        out_pattern = re.compile('^\s*output')
-        end_pattern = re.compile('^\s*endmodule')
-        pin_def_list_bk = pin_def_list
-        for line in use_line_list:
-            if not pin_def_list:
-                break
-            if re.match(in_pattern, line) or re.match(out_pattern, line):
+        for pin in pin_def_list:
+            pin = pin.strip()[:-1]
+            LogCheck = subprocess.Popen(['grep', '-Em 1', rf"(input|output|inout)\s+\[*[0-9]*:*[0-9]*\]*\s*{pin}\s*;", self.filename],
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            stdout, stderr = LogCheck.communicate()
+            if stdout.decode():
+                line = stdout.decode()
                 def_list.append(line)
-                partitions = line.split()
-                if partitions[-1] in pin_def_list:
-                    pin_def_list.remove(partitions[-1])
-            if re.match(end_pattern, line):
-                break
+            else:
+                raise ValueError(f"Cannot find direction for port {pin} in file {self.filename}.")
 
         for pin in def_list:
             parts = pin.split()
