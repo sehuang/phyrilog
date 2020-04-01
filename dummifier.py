@@ -79,6 +79,9 @@ class Dummifier:
                         pin_dict['direction'] = 'output'
                     elif any([outs in line for outs in submod_outs]):
                         pin_dict['direction'] = 'input'
+                    elif 'assign' in line:
+                        lin = line.replace('assign', "")
+
                     else:
                         continue
                 if not pin_dict.get('direction', None):
@@ -92,3 +95,34 @@ class Dummifier:
         for line in line_list:
             if re.match(pattern, line):
                 return line_list.index(line)
+
+
+class BinaryOp:
+    def __init__(self, left_op, right_op):
+        self.left_op = left_op
+        self.right_op = right_op
+
+class Equals(BinaryOp):
+    def __init__(self, left_op, right_op):
+        super().__init__(left_op, right_op)
+
+
+class Logic(BinaryOp):
+    def __init__(self, left_op, right_op, operator):
+        super().__init__(left_op, right_op)
+
+    def _parse_op(self, operator):
+        if operator == '|':
+            self.operation = 'OR'
+        elif operator == '&':
+            self.operation = 'AND'
+        elif operator == '^':
+            self.operation = 'XOR'
+
+class AssignOp:
+    def __init__(self, expression):
+        self.expression = expression
+
+    def parse_expression(self):
+        if 'assign' in self.expression:
+            self.expression.replace('assign', '')

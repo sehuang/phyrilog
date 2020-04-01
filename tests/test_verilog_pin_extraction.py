@@ -1,4 +1,6 @@
-from verilog_pin_extract import VerilogModule
+import sys
+sys.path.insert(1, '/Users/sehuang/projects')
+from phyrilog.verilog_pin_extract import VerilogModule
 import pprint
 
 
