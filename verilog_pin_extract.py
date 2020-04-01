@@ -144,6 +144,7 @@ class VerilogModule:
         self.pin_name_list = None
 
         clean_line_list = self._strip_comments(line_list)
+        self.clean_list = clean_line_list
         self.top_line_no = self._get_top_module_line_no(clean_line_list, top)
         pin_def_list = self._get_pin_def_list(clean_line_list, self.top_line_no)
         self._check_for_definitions(pin_def_list, self.top_line_no, clean_line_list)
@@ -178,7 +179,11 @@ class VerilogModule:
 
     @property
     def clean_line_list(self):
-        return self._strip_comments(self.line_list)
+        try:
+            return self.clean_list
+        except AttributeError:
+            self.clean_list = self._strip_comments(self.line_list)
+            return self.clean_list
 
     def _get_top_module_line_no(self, line_list, top):
         """Finds the beginning of the module definition.
@@ -215,6 +220,14 @@ class VerilogModule:
             if checkstr in line:
                 return line_list.index(line)
         raise NameError(f"Could not find module name {top} in {self.filename}.")
+
+    @property
+    def top_line_number(self):
+        top_line = self.clean_list[self.top_line_no]
+        LogCheck = subprocess.Popen(['grep', '-nm 1', top_line, self.filename],
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        stdout, stderr = LogCheck.communicate()
+        return int(stdout.decode().split(":")[0])
 
     def _get_pin_def_list(self, line_list, top_line_no):
         """Returns list of strings containing the module and port definitions."""
@@ -472,12 +485,16 @@ class VerilogModule:
         def_list = []
         for pin in pin_def_list:
             pin = pin.strip()[:-1]
-            LogCheck = subprocess.Popen(['grep', '-Em 1', rf"(input|output|inout)\s+\[*[0-9]*:*[0-9]*\]*\s*{pin}\s*;", self.filename],
-                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            stdout, stderr = LogCheck.communicate()
-            if stdout.decode():
-                line = stdout.decode()
-                def_list.append(line)
+            start_line = subprocess.Popen(['tail',f'--lines=+{self.top_line_number}',  f'{self.filename}'],
+                                          stdout=subprocess.PIPE)
+            grep = subprocess.Popen(['grep', '-Em 1', f'\"(input|output|inout)\s+\[*[0-9]*:*[0-9]*\]*\s*{pin}\"'],
+                                        stdin=start_line.stdout, stdout=subprocess.PIPE)
+            stdout, err = grep.communicate()
+            # lineout = grep.stdout.read().decode()
+            lineout = stdout.decode()
+            print(lineout)
+            if lineout:
+                def_list.append(lineout.rstrip())
             else:
                 raise ValueError(f"Cannot find direction for port {pin} in file {self.filename}.")
 
