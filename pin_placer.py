@@ -217,7 +217,7 @@ class PinPlacer:
                     pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, bus_idx=bus_idx)
                     pin_obj.name = pin['name'] + '[' + str(bus_idx) + ']'
                     self.pin_sides_dict[side].append(pin_obj)
-                    elf.pins.append(pin_obj)
+                    self.pins.append(pin_obj)
             else:
                 pin_obj = PHYPortPin(pin, layer, side, x_width, y_width, center=center)
                 self.pin_sides_dict[side].append(pin_obj)
