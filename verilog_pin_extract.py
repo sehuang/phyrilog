@@ -313,11 +313,12 @@ class VerilogModule:
         if self.constfile_list:
             for line in self.constfile_list:
                 parts = line.split()
-                if parts[0] == '`define':
-                    param_name = parts[1]
-                    param_val = parts[-1]
-                    if param_val.isnumeric():
-                        self.params[param_name] = int(param_val)
+                if len(parts) > 0:
+                    if parts[0] == '`define':
+                        param_name = parts[1]
+                        param_val = parts[-1]
+                        if param_val.isnumeric():
+                            self.params[param_name] = int(param_val)
 
         return pins_str[pins_str.index(params_str) + len(params_str):]
 
