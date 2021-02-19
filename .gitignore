@@ -3,3 +3,7 @@ venv/*
 *.pyc
 __pycache__/
 .idea/
+*.lef
+*.gds
+*.lib
+*.log
