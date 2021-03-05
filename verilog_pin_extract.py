@@ -487,7 +487,7 @@ class VerilogModule:
             # name = re.match(r'\w', parts[-1]).string
             # name = parts[-1]
             direction = parts[0]
-            bus_idx = re.findall(r"\[[0-9]+:[0-9]+\]", pin)
+            bus_idx = re.findall(r"\[.*\]", pin)
             is_bus = len(bus_idx) > 0
             names = []
             for part in parts[1:]:
