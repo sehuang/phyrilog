@@ -5,7 +5,7 @@ import pathlib
 import os
 
 this_path = os.path.abspath('')
-projects_dir = pathlib.Path(this_path).parents[1]
+projects_dir = pathlib.Path(this_path).parents[0]
 behav_model = projects_dir / 'phyrilog/views/behavioral/sram.v'
 # behav_model = projects_dir / 'phyrilog/src/sram_behav_models.v'
 consts = projects_dir / 'phyrilog/views2/behavioral/const.vh'

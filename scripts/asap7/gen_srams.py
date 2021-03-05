@@ -12,7 +12,7 @@ class SRAMBBox:
     def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir, characterizer=None):
         self.name = name
         self.per_word_bit_xwidth =  0.538 # This was determined arbitrarily.
-        self.per_word_bit_xwidth =  0.119 # This was determined arbitrarily.
+        #self.per_word_bit_xwidth =  0.119 # This was determined arbitrarily.
         self.clock_names = (('CE'),)
         self.seq_names = (('O[^A-Z]','CE','~OEB & RE'),)
         self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile,
@@ -138,8 +138,9 @@ class SRAMBBox:
         diff = 1
         aratio = round(2 ** self.num_addr / self.word_length, 2)
         if aratio > aratio_limit:
-            diff = int(np.ceil(aratio / aratio_limit))
-            aratio = aratio_limit
+            diff = np.rint(np.sqrt(aratio / aratio_limit))
+            print(f'diff: {diff}')
+            aratio = round(2 ** self.num_addr / (self.word_length * diff ** 2), 2)
 
         xwidth = self.per_word_bit_xwidth * int(self.word_length)
         self.specs['x_width'] = round(xwidth * diff, 3)
