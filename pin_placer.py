@@ -107,7 +107,7 @@ class PinPlacer:
         self.specs = r_update(self.specs, options_dict)
         self._extract_techfile(techfile)
         self.pins = []
-        self.sig_figs = int(-(np.log10(self.specs['units']) - np.log10(self.specs['precision'])))
+        self.sig_figs = int(np.log10(self.specs['units']) - np.log10(self.specs['precision']))
         self.autodefined = False
         self.pg_pins = {}
         self.dist_pin_spacing = {'left': 0,
@@ -735,7 +735,7 @@ class PinPlacer:
             pin = pin_list.pop(0)
             layer = pin.layer
             width = pin.y_width if orientation == 'horizontal' else pin.x_width
-            pitch = self.metals[layer]['pitch']
+            pitch = self.metals[layer]['pitch']/4
             lower_dim = round(lower, self.sig_figs)
             upper_dim = round(lower + width, self.sig_figs)
             if upper_dim > interval[1]:
