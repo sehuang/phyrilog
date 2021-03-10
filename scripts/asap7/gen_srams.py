@@ -11,10 +11,8 @@ class SRAMBBox:
 
     def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir, characterizer=None):
         self.name = name
-        self.per_word_bit_xwidth =  0.538 # This was determined arbitrarily.
-        #self.per_word_bit_xwidth =  0.119 # This was determined arbitrarily.
+        self.per_word_bit_xwidth =  0.24 # This was determined arbitrarily.
         self.clock_names = (('CE'),)
-        #self.seq_names = (('O[^A-Z]','CE','~OEB & RE'),)
         self.seq_names = (('O[^A-Z]','CE','~OEB'),('I[^A-Z]','CE','~CSB & ~WEB'),('A[^A-Z]','CE','~CSB'))
         self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile,
                                             clocks=self.clock_names, seq_pins=self.seq_names)
