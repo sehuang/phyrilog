@@ -14,7 +14,8 @@ class SRAMBBox:
         self.per_word_bit_xwidth =  0.538 # This was determined arbitrarily.
         #self.per_word_bit_xwidth =  0.119 # This was determined arbitrarily.
         self.clock_names = (('CE'),)
-        self.seq_names = (('O[^A-Z]','CE','~OEB & RE'),)
+        #self.seq_names = (('O[^A-Z]','CE','~OEB & RE'),)
+        self.seq_names = (('O[^A-Z]','CE','~OEB'),('I[^A-Z]','CE','~CSB & ~WEB'),('A[^A-Z]','CE','~CSB'))
         self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile,
                                             clocks=self.clock_names, seq_pins=self.seq_names)
         self.layermapfile = layermapfile
@@ -139,7 +140,6 @@ class SRAMBBox:
         aratio = round(2 ** self.num_addr / self.word_length, 2)
         if aratio > aratio_limit:
             diff = np.rint(np.sqrt(aratio / aratio_limit))
-            print(f'diff: {diff}')
             aratio = round(2 ** self.num_addr / (self.word_length * diff ** 2), 2)
 
         xwidth = self.per_word_bit_xwidth * int(self.word_length)
@@ -164,24 +164,58 @@ class ASAP7Characterizer(Characterizer):
         self.num_addr = numAddr
 
     def characterizer(self, arc_type, timing_type, pin, related_pin, corner, params):
-        if arc_type == 'cell_rise':
-            R = 50
-            # time = np.log(np.log(params['input_net_transition'])) * R * params['total_output_net_capacitance'] * np.log2(self.num_addr)
-            time = np.log(np.log(params['input_net_transition'])) * R * 2**np.log(1.4**np.log(params['total_output_net_capacitance']))* np.log2(self.num_addr)
+        # SetupArc
+        # For simplicity make rise & fall equal
+        if timing_type == 'setup_rising':
+            if corner.name == 'PVT_0P63V_100C':
+                R = 40
+                i1 = 1.06
+                i2 = 0.98
+            else:
+                R = 23
+                i1 = 1.04
+                i2 = 0.97
+            time = R * i1**np.log(params['related_pin_transition']) * i2**np.log(params['constrained_pin_transition']) * (1 + self.num_addr/10)
             return round(float(time), 4)
-        elif arc_type == 'rise_transition':
-            R = 8
-            time = np.sqrt(params['input_net_transition']) * R * 1.1**np.log(1.1**np.log(1.05**np.log(params['total_output_net_capacitance'])))
+
+        # HoldArc
+        # For simplicity make rise & fall equal
+        elif timing_type == 'hold_rising':
+            if corner.name == 'PVT_0P63V_100C':
+                R = 18
+                i1 = 0.9
+                i2 = 1.15
+            else:
+                R = 12
+                i1 = 0.85
+                i2 = 1.1
+            time = R * i1**np.log(params['related_pin_transition']) * i2**np.log(params['constrained_pin_transition']) * (1 + self.num_addr/10)
             return round(float(time), 4)
-        elif arc_type == 'cell_fall':
-            R = 51
-            # time = np.log(np.log(params['input_net_transition'])) * R * params['total_output_net_capacitance'] * np.log2(self.num_addr)
-            time = np.log(np.log(params['input_net_transition'])) * R * 2 ** np.log(
-                1.4 ** np.log(params['total_output_net_capacitance'])) * np.log2(self.num_addr)
+
+        # ClockToQArc
+        # For simplicity make rise & fall equal (dominated by sense amp)
+        elif arc_type == 'cell_rise' or arc_type == 'cell_fall':
+            if corner.name == 'PVT_0P63V_100C':
+            	R = 50
+            	i1 = 1.05
+            	i2 = 1.15
+            else:
+                R = 30
+                i1 = 1.02
+                i2 = 1.1
+            time = R * i1**np.log(10*params['input_net_transition']) * i2**np.log(10*params['total_output_net_capacitance']) * (1 + self.num_addr/10)
             return round(float(time), 4)
-        elif arc_type == 'fall_transition':
-            R = 7.9
-            time = np.sqrt(params['input_net_transition']) * R * 1.1**np.log(1.1**np.log(1.05**np.log(params['total_output_net_capacitance'])))
+        elif arc_type == 'rise_transition' or arc_type == 'fall_transition':
+            # Indices seem backwards in this calculation
+            if corner.name == 'PVT_0P63V_100C':
+                R = 0.75
+                i1 = 1.75
+                i2 = 1.01
+            else:
+                R = 0.5
+                i1 = 1.65
+                i2 = 1.01
+            time = R * i1**np.log(10*params['input_net_transition']) * i2**np.log(10*params['total_output_net_capacitance']) * (1 + self.num_addr/10)
             return round(float(time), 4)
         else:
             return round(float(5.0), 4)
