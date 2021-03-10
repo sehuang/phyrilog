@@ -735,7 +735,7 @@ class PinPlacer:
             pin = pin_list.pop(0)
             layer = pin.layer
             width = pin.y_width if orientation == 'horizontal' else pin.x_width
-            pitch = self.metals[layer]['pitch']/4
+            pitch = self.metals[layer]['pitch']
             lower_dim = round(lower, self.sig_figs)
             upper_dim = round(lower + width, self.sig_figs)
             if upper_dim > interval[1]:

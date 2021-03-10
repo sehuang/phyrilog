@@ -11,7 +11,7 @@ class SRAMBBox:
 
     def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir, characterizer=None):
         self.name = name
-        self.per_word_bit_xwidth =  0.22 # This was determined arbitrarily.
+        self.per_word_bit_xwidth =  0.16 # This was determined arbitrarily.
         self.clock_names = (('CE'),)
         self.seq_names = (('O[^A-Z]','CE','~OEB'),('I[^A-Z]','CE','~CSB & ~WEB'),('A[^A-Z]','CE','~CSB'))
         self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile,
@@ -135,16 +135,18 @@ class SRAMBBox:
         self.num_addr = int(self.verilog_module.params['numAddr'])
         aratio_limit = 2.5
         diff = 1
-        aratio = round(2 ** self.num_addr / self.word_length, 2)
+        long_dim = max(2 ** self.num_addr, self.word_length)
+        short_dim = min(2 ** self.num_addr, self.word_length)
+        aratio = round(long_dim / short_dim, 2)
         if aratio > aratio_limit:
             diff = np.rint(np.sqrt(aratio / aratio_limit))
-            aratio = round(2 ** self.num_addr / (self.word_length * diff ** 2), 2)
+            aratio = round(long_dim / (short_dim * diff ** 2), 2)
 
-        xwidth = self.per_word_bit_xwidth * int(self.word_length)
+        xwidth = self.per_word_bit_xwidth * int(short_dim)
         self.specs['x_width'] = round(xwidth * diff, 3)
-        self.specs['aspect_ratio'] = [1, aratio]
+        self.specs['aspect_ratio'] = [1, aratio*2] # arbitrary bitcell aspect ratio
         print(f'Xwidth: {round(xwidth * diff, 3)}')
-        print(f'Aspect Ratio: {aratio}')
+        print(f'Aspect Ratio: {aratio*2}')
 
     def _get_xwidth_from_name(self):
         num_locs = re.search(r"[\d]+(?=x)", self.name)[0]
