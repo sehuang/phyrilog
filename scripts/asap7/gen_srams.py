@@ -11,7 +11,7 @@ class SRAMBBox:
 
     def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir, characterizer=None):
         self.name = name
-        self.per_word_bit_xwidth =  0.16 # This was determined arbitrarily.
+        self.per_word_bit_xwidth =  0.22 # This was determined arbitrarily.
         self.clock_names = (('CE'),)
         self.seq_names = (('O[^A-Z]','CE','~OEB'),('I[^A-Z]','CE','~CSB & ~WEB'),('A[^A-Z]','CE','~CSB'))
         self.verilog_module = VerilogModule(name, filename=modulefile, constfile=constfile,
@@ -144,9 +144,9 @@ class SRAMBBox:
 
         xwidth = self.per_word_bit_xwidth * int(short_dim)
         self.specs['x_width'] = round(xwidth * diff, 3)
-        self.specs['aspect_ratio'] = [1, aratio*2] # arbitrary bitcell aspect ratio
+        self.specs['aspect_ratio'] = [1, aratio]
         print(f'Xwidth: {round(xwidth * diff, 3)}')
-        print(f'Aspect Ratio: {aratio*2}')
+        print(f'Aspect Ratio: {aratio}')
 
     def _get_xwidth_from_name(self):
         num_locs = re.search(r"[\d]+(?=x)", self.name)[0]
