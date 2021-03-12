@@ -5,6 +5,10 @@ This package accepts a Verilog file and collateral headers and generates an
 internal physical representation of the design, which it translates to a LEF,
 LIB, and GDS view.
 
+Note that this generates a black box blockage and does not contain any layout within the view.
+The views generated with this package will not pass signoff and are merely for verifying physical
+design flows before receiving actual IP.
+
 ## ASAP7 SRAM View Generation
 Relevant scripts live in the `scripts` directory.
 
