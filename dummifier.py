@@ -1,4 +1,4 @@
-from verilog_pin_extract import VerilogModule
+from phyrilog.verilog_pin_extract import VerilogModule
 import textwrap, re, subprocess, shutil
 
 class DummyModule(VerilogModule):

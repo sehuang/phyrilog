@@ -3,6 +3,7 @@ import operator
 import subprocess, shutil
 import ast
 import json
+import tempfile
 import time
 
 
@@ -142,10 +143,12 @@ class VerilogModule:
         self.constfile = constfile
         self.ww = WhenWriter()
         self.pin_name_list = None
+        self.module_tempfile = tempfile.NamedTemporaryFile('w+b')
 
         clean_line_list = self._strip_comments(line_list)
         self.clean_list = clean_line_list
         self.top_line_no = self._get_top_module_line_no(clean_line_list, top)
+        self._trim_file()
         pin_def_list = self._get_pin_def_list(clean_line_list, self.top_line_no)
         self._check_for_definitions(pin_def_list, self.top_line_no, clean_line_list)
         # self._parse_pin_def_list(pin_def_list)
@@ -221,13 +224,41 @@ class VerilogModule:
                 return line_list.index(line)
         raise NameError(f"Could not find module name {top} in {self.filename}.")
 
+    def _trim_file(self):
+        start_line = subprocess.Popen(
+            ['tail', f'--lines=+{self.top_line_number}', f'{self.filename}'],
+            stdout=self.module_tempfile)
+        start_line.communicate()
+        end_line_no = self.end_line_number - self.top_line_number
+        end_line = subprocess.Popen(
+            ['head', f'--lines={end_line_no}', f'{self.module_tempfile.name}'],
+            stdout=self.module_tempfile)
+        end_line.communicate()
+
+
     @property
     def top_line_number(self):
-        top_line = self.clean_list[self.top_line_no]
-        LogCheck = subprocess.Popen(['grep', '-nm 1', top_line, self.filename],
-                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        stdout, stderr = LogCheck.communicate()
-        return int(stdout.decode().split(":")[0])
+        try:
+            return self._top_line_number
+        except:
+            top_line = "module " + self.name
+            topper = subprocess.Popen(['grep', '-nm 1', top_line, self.filename],
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            stdout, stderr = topper.communicate()
+            self._top_line_number = int(stdout.decode().split(":")[0])
+            return self._top_line_number
+
+    @property
+    def end_line_number(self):
+        try:
+            return self._end_liine_no
+        except:
+            end_line = "endmodule"
+            ender = subprocess.Popen(['grep', '-nm 1', end_line, self.filename],
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            stdout, stderr = ender.communicate()
+            self._end_line_no = int(stdout.decode().split(":")[0])
+            return self._end_line_no
 
     def _get_pin_def_list(self, line_list, top_line_no):
         """Returns list of strings containing the module and port definitions."""
@@ -483,16 +514,14 @@ class VerilogModule:
         # pins_str_list = pins_str_match[0].split(',')
 
         def_list = []
+        mod_file_name = self.module_tempfile.name
         for pin in pin_def_list:
             pin = pin.strip()[:-1]
-            start_line = subprocess.Popen(['tail',f'--lines=+{self.top_line_number}',  f'{self.filename}'],
-                                          stdout=subprocess.PIPE)
-            grep = subprocess.Popen(['grep', '-Em 1', f'\"(input|output|inout)\s+\[*[0-9]*:*[0-9]*\]*\s*{pin}\"'],
-                                        stdin=start_line.stdout, stdout=subprocess.PIPE)
+            grep = subprocess.Popen(f'grep -Em 1 \"(input|output|inout)\s+\[*[0-9]*:*[0-9]*\]*\s*{pin}\" {mod_file_name}',
+                                       stdout=subprocess.PIPE, shell=True)
             stdout, err = grep.communicate()
             # lineout = grep.stdout.read().decode()
             lineout = stdout.decode()
-            print(lineout)
             if lineout:
                 def_list.append(lineout.rstrip())
             else:
