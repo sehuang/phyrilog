@@ -7,11 +7,12 @@ from phyrilog.utilities import *
 from phyrilog.verilog_pin_extract import VerilogModule
 import numpy as np
 import re
+import pickle
 
 class SRAMBBox:
     """This object is a wrapper for all the generators and views2 associated with a single SRAM BBox instance."""
 
-    def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir, characterizer=None):
+    def __init__(self, name, modulefile, constfile, techfile, layermapfile, cornerfile, views_dir, characterizer=None, def_specs=dict(), **kwargs):
         self.name = name
         self.per_word_bit_xwidth =  0.22 # This was determined arbitrarily.
         self.clock_names = (('CE'),)
@@ -61,17 +62,22 @@ class SRAMBBox:
                               },
                           },}
         self.specs = r_update(self.specs, self.pin_specs)
-        if 'wordLength' not in self.verilog_module.params.keys() \
-                or 'numAddr' not in self.verilog_module.params.keys():
-            self._get_xwidth_from_name()
+        self.specs = r_update(self.specs, def_specs)
+        if 'x_width' not in self.specs.keys():
+            if 'wordLength' not in self.verilog_module.params.keys() \
+                    or 'numAddr' not in self.verilog_module.params.keys():
+                self._get_xwidth_from_name()
+            else:
+                self._get_xwidth_from_consts()
         else:
-            self._get_xwidth_from_consts()
+            self._extract_consts()
         self.lib_options = {'capacitive_load_unit': '(1, ff)',
                             'time_unit': '1ps'}
         if characterizer:
             self.characterizer = characterizer(self.word_length, self.num_addr)
         else:
             self.characterizer = None
+        scale = self.specs.get('scale', 1)
         self.phy = BBoxPHY(self.verilog_module, techfile, spec_dict=self.specs, prescale=0.25)
 
         views_dir_path = pathlib.Path(os.path.abspath(views_dir))
@@ -134,6 +140,21 @@ class SRAMBBox:
         self.phy.scale(1 / N)
         print('\n')
 
+    def _get_consts_from_name(self):
+        num_locs = re.search(r"[\d]+(?=x)", self.name)[0]
+        word_len = re.search(r"(?<=x)[\d]+", self.name)[0]
+        num_addr = str(int(np.log2(int(num_locs))))
+        self.verilog_module.params['wordLength'] = word_len
+        self.verilog_module.params['numAddr'] = str(num_addr)
+
+    def _extract_consts(self):
+        try:
+            self.word_length = int(self.verilog_module.params['wordLength'])
+            self.num_addr = int(self.verilog_module.params['numAddr'])
+        except KeyError:
+            self._get_consts_from_name()
+            self._extract_consts()
+
     def _get_xwidth_from_consts(self):
         self.word_length = int(self.verilog_module.params['wordLength'])
         self.num_addr = int(self.verilog_module.params['numAddr'])
@@ -153,11 +174,7 @@ class SRAMBBox:
         print(f'Aspect Ratio: {aratio}')
 
     def _get_xwidth_from_name(self):
-        num_locs = re.search(r"[\d]+(?=x)", self.name)[0]
-        word_len = re.search(r"(?<=x)[\d]+", self.name)[0]
-        num_addr = str(int(np.log2(int(num_locs))))
-        self.verilog_module.params['wordLength'] = word_len
-        self.verilog_module.params['numAddr'] = str(num_addr)
+        self._get_consts_from_name()
         self._get_xwidth_from_consts()
 
 
@@ -231,7 +248,7 @@ class ASAP7Characterizer(Characterizer):
 class ASAP7SRAMs:
     """This class is a container for all the ASAP7 SRAM black box views."""
 
-    def __init__(self, behav_file, project_dir, hammer_dir, listfile=None, search=None):
+    def __init__(self, behav_file, project_dir, hammer_dir, listfile=None, search=None, predefs=None):
 
         self.project_dir = project_dir
         self.layermapfile = project_dir / 'resources/asap7_TechLib.layermap'
@@ -249,6 +266,7 @@ class ASAP7SRAMs:
         # self.module_def_list = [line for line in self.line_list if "module" in line]
         if os.path.exists('tmp'):
             shutil.rmtree('tmp')
+        self.predefs = predefs
 
 
     def _strip_comments(self, line_list):
@@ -324,9 +342,14 @@ class ASAP7SRAMs:
     def make_sram_objs(self, name):
         if not os.path.exists(self.project_dir / 'views'):
             os.mkdir(self.project_dir / 'views')
+        try:
+            extra_specs = self.predefs[name]
+            print(f"Found extra specs for {name}: {extra_specs}")
+        except KeyError or TypeError:
+            extra_specs = dict()
         self.srams.append(SRAMBBox(name, self.modulefile, self.constfile, self.techfile,
                                    self.layermapfile, self.cornerfile, self.project_dir / 'views',
-                                   characterizer=ASAP7Characterizer))
+                                   characterizer=ASAP7Characterizer, def_specs=extra_specs))
 
 
     def build_all_sram_views(self, sram_obj):

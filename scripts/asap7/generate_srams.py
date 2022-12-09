@@ -3,6 +3,7 @@
 import sys
 import pathlib
 import os
+import pickle
 
 project_parent = pathlib.Path().resolve().parents[0]
 os.environ['PYTHONPATH'] = str(project_parent)
@@ -10,6 +11,7 @@ os.environ['PYTHONPATH'] = str(project_parent)
 sys.path.append(os.path.abspath('../..'))
 
 from gen_srams import ASAP7SRAMs
+
 
 this_path = os.path.abspath('')
 projects_dir = pathlib.Path(this_path).parents[0]
@@ -19,7 +21,11 @@ consts = projects_dir / 'phyrilog/views2/behavioral/const.vh'
 asap7_layermapfile = projects_dir / 'phyrilog/asap7_TechLib.layermap'
 techfile = projects_dir / 'hammer/src/hammer-vlsi/technology/asap7/asap7.tech.json'
 corners = projects_dir / 'phyrilog/resources/asap7_lib_corners.json'
+def_specs = projects_dir / 'phyrilog/predef_sizes.pickle'
 
-asap7_srams = ASAP7SRAMs(behav_model, projects_dir / 'phyrilog', projects_dir / 'hammer', search='[\s\S](_new)*')
+with open(def_specs, 'rb') as f:
+    predefs = pickle.load(f)
+
+asap7_srams = ASAP7SRAMs(behav_model, projects_dir / 'phyrilog', projects_dir / 'hammer', search='[\s\S](_new)*', predefs=predefs)
 asap7_srams.add_all_srams()
 asap7_srams.build_all_srams()

@@ -565,6 +565,9 @@ class PHYDesign:
         for obj in self.phys_objs:
             obj.scale(scale_factor)
 
-        self.x_width = round(self.x_width * scale_factor, 3)
-        self.y_width = round(self.y_width * scale_factor, 3)
-
+        try:
+            self.x_width = self.specs['x_width']
+            self.y_width = self.specs['y_width']
+        except KeyError:
+            self.x_width = round(self.x_width * scale_factor, 3)
+            self.y_width = round(self.y_width * scale_factor, 3)

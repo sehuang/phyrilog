@@ -150,6 +150,9 @@ class BBoxPHY(PHYDesign):
         if 'y_width' in self.specs.keys() or 'x_width' in self.specs.keys():
             x_width = self.specs.get('x_width', 0)
             y_width = self.specs.get('y_width', 0)
+            x_width = x_width / self.specs.get('scale', 1)
+            y_width = y_width / self.specs.get('scale', 1)
+            box_predefined = True if x_width > 0 and y_width > 0 else False
             if 'aspect_ratio' in self.specs.keys():
                 ar = self.specs['aspect_ratio']
                 if y_width and not x_width:
@@ -184,21 +187,26 @@ class BBoxPHY(PHYDesign):
                     y_width = self.pin_placer.min_y_dim
             self.bbox_x_width = round(x_width, 3)
             self.bbox_y_width = round(y_width, 3)
-            bbox = np.asarray([round(self.pin_placer.max_l_pin_length, 3),
-                               round(self.pin_placer.max_b_pin_length, 3),
-                               round(x_width + self.pin_placer.max_l_pin_length, 3),
-                               round(y_width + self.pin_placer.max_b_pin_length, 3)])
-            bbox = np.asarray(self.pin_placer.specs['origin'] * 2) + bbox
+            if not box_predefined:
+                bbox = np.asarray([round(self.pin_placer.max_l_pin_length, 3),
+                                round(self.pin_placer.max_b_pin_length, 3),
+                                round(x_width + self.pin_placer.max_l_pin_length, 3),
+                                round(y_width + self.pin_placer.max_b_pin_length, 3)])
+                bbox = np.asarray(self.pin_placer.specs['origin'] * 2) + bbox
+            else:
+                bbox = np.asarray([round(self.pin_placer.max_l_pin_length, 3),
+                                round(self.pin_placer.max_b_pin_length, 3),
+                                round(x_width - self.pin_placer.max_r_pin_length, 3),
+                                round(y_width - self.pin_placer.max_t_pin_length, 3)])
+                bbox = np.asarray(self.pin_placer.specs['origin'] * 2) + bbox
             self.pin_placer.specs['internal_box'] = bbox.tolist()
-            if self.specs['pin_margin']:
+            if self.specs['pin_margin'] and not box_predefined:
                 margins = np.asarray([0, 0, self.pin_placer.v_pin_pitch,
                                       self.pin_placer.h_pin_pitch])
                 inner_box = bbox + margins
                 self.pin_placer.specs['internal_box'] = inner_box.tolist()
-            self.pin_placer.specs['design_boundary'] = (round(self.pin_placer.specs['internal_box'][
-                                                            2] + self.pin_placer.max_r_pin_length, 3),
-                                                        round(self.pin_placer.specs['internal_box'][
-                                                            3] + self.pin_placer.max_t_pin_length, 3))
+            self.pin_placer.specs['design_boundary'] = (round(self.pin_placer.specs['internal_box'][2] + self.pin_placer.max_r_pin_length, 3),
+                                                        round(self.pin_placer.specs['internal_box'][3] + self.pin_placer.max_t_pin_length, 3))
             self.pin_placer.specs['bound_box'] = self.pin_placer.specs['origin'] + list(self.pin_placer.specs['design_boundary'])
         else:
             self.pin_placer.autodefine_boundaries()
