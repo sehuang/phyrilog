@@ -43,12 +43,12 @@ class BinaryOp:
             return_str += el.elaboration
         return return_str
 
-class Tree:
-    def __init__(self):
+# class Tree:
+#     def __init__(self):
 
 
 
-def parse(expr):
+# def parse(expr):
 
-    for char in expr:
-        if
+#     for char in expr:
+#         if

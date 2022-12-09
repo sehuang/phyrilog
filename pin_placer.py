@@ -187,10 +187,14 @@ class PinPlacer:
         self.metals = {}
         for layer in stackups:
             self.metals[layer['name']] = layer
-        self.h_pin_width = self.metals[self.specs['pins']['h_layer']]['min_width'] * self.prescale
-        self.v_pin_width = self.metals[self.specs['pins']['v_layer']]['min_width'] * self.prescale
-        self.h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch'] * self.prescale
-        self.v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch'] * self.prescale
+            self.metals[layer['name']]['min_width'] = layer['min_width'] * self.prescale
+            self.metals[layer['name']]['pitch'] = layer['pitch'] * self.prescale
+
+        # some commonly used values
+        self.h_pin_width = self.metals[self.specs['pins']['h_layer']]['min_width']
+        self.v_pin_width = self.metals[self.specs['pins']['v_layer']]['min_width']
+        self.h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch']
+        self.v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch']
 
     def _sort_pins_by_side(self):
         """
