@@ -1,5 +1,6 @@
-from verilog_pin_extract import VerilogModule
-import dotlibber.src.dotlibber as dl
+from phyrilog.verilog_pin_extract import VerilogModule
+import phyrilog.dotlibber.src.dotlibber as dl
+from phyrilog.dotlibber.src.dotlibber import default_library_namer
 import json
 import pathlib
 import os
@@ -88,7 +89,6 @@ class LIBBuilder:
             self.dl_library.library_namer = lib_namer
 
         def file_namer(lib, corner):
-                from dotlibber.src.dotlibber import default_library_namer
                 return default_library_namer(lib, corner) + ".lib"
 
         if dest_dir:

@@ -1,4 +1,4 @@
-from verilog2phy import PHYDesign, Rectangle, Label
+from phyrilog.verilog2phy import PHYDesign, Rectangle, Label
 
 class LEFBlock:
     def __init__(self, type, name, lines):

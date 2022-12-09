@@ -1,7 +1,7 @@
-from GDSBuilder import *
-from LEFBuilder import *
-from verilog2phy import *
-from pin_placer import *
+from phyrilog.GDSBuilder import *
+from phyrilog.LEFBuilder import *
+from phyrilog.verilog2phy import *
+from phyrilog.pin_placer import *
 
 
 class PHYBBox(PHYObject):
@@ -106,7 +106,7 @@ class BBoxPHY(PHYDesign):
     polygons : dict
         Flat hierarchy dictionary of polygons in design.
     """
-    def __init__(self, verilog_module, techfile, spec_dict=None):
+    def __init__(self, verilog_module, techfile, spec_dict=None, prescale=1):
         self.strictness_opt = ['flexible', 'strict']
         self.bbox_defaults = {'aspect_ratio_strictness': 'strict',
                               'x_strictness': 'strict',
@@ -120,9 +120,10 @@ class BBoxPHY(PHYDesign):
         # self.build_design_repr()
         self.pin_specs = {'pins':self.specs['pins'],
                           'pg_pins': self.specs['pg_pins']}
+        self.prescale = prescale
         # self.pin_specs = r_update(self.pin_specs, self.specs['pg_pins'])
         self.pin_placer = PinPlacer(verilog_module.pins, verilog_module.power_pins, techfile,
-                                    pin_specs=self.pin_specs, options_dict=spec_dict)
+                                    pin_specs=self.pin_specs, options_dict=spec_dict, prescale=self.prescale)
         self.define_design_boundaries()
         self.place_pins()
         self.build_design_repr()

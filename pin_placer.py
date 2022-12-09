@@ -1,8 +1,10 @@
-from verilog_pin_extract import VerilogModule
-from verilog2phy import *
-from utilities import *
+from phyrilog.verilog_pin_extract import VerilogModule
+from phyrilog.verilog2phy import *
+from phyrilog.utilities import *
 import numpy as np
 import enum
+
+from typing import List, Dict, Tuple, Optional, Union
 
 pin_placement_algorithm = ['casual', 'strict']
 internal_sizing_strictness = ['flexible', 'strict']
@@ -72,7 +74,8 @@ class PinPlacer:
         Decimal significant figure precision of all coordinates.
     """
 
-    def __init__(self, pins_dict, pg_pins_dict, techfile, pin_specs=dict(), options_dict=dict()):
+    def __init__(self, pins_dict, pg_pins_dict, techfile,
+                 pin_specs=dict(), options_dict=dict(), prescale=1):
         self.pins_dict = pins_dict
         self.pg_pins_dict = pg_pins_dict
         self.defaults = {'origin': [0, 0],
@@ -103,6 +106,7 @@ class PinPlacer:
                                      'v_layer': 'M5',
                                      'pg_pin_placement': 'small_pins'}
                          }
+        self.prescale = prescale
         self.specs = r_update(self.defaults, pin_specs)
         self.specs = r_update(self.specs, options_dict)
         self._extract_techfile(techfile)
@@ -183,10 +187,10 @@ class PinPlacer:
         self.metals = {}
         for layer in stackups:
             self.metals[layer['name']] = layer
-        self.h_pin_width = self.metals[self.specs['pins']['h_layer']]['min_width']
-        self.v_pin_width = self.metals[self.specs['pins']['v_layer']]['min_width']
-        self.h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch']
-        self.v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch']
+        self.h_pin_width = self.metals[self.specs['pins']['h_layer']]['min_width'] * self.prescale
+        self.v_pin_width = self.metals[self.specs['pins']['v_layer']]['min_width'] * self.prescale
+        self.h_pin_pitch = self.metals[self.specs['pins']['h_layer']]['pitch'] * self.prescale
+        self.v_pin_pitch = self.metals[self.specs['pins']['v_layer']]['pitch'] * self.prescale
 
     def _sort_pins_by_side(self):
         """
@@ -203,10 +207,8 @@ class PinPlacer:
             if pin['name'] in pin_specs.keys():
                 side = pin_specs[pin['name']].get('side', side)
             orientation = get_orientation(side)
-            x_width = pin_specs['pin_length'] if orientation == 'horizontal' else self.metals[pin_specs['v_layer']][
-                'min_width']
-            y_width = pin_specs['pin_length'] if orientation == 'vertical' else self.metals[pin_specs['h_layer']][
-                'min_width']
+            x_width = pin_specs['pin_length'] if orientation == 'horizontal' else self.v_pin_width
+            y_width = pin_specs['pin_length'] if orientation == 'vertical' else self.h_pin_width
             layer = self.specs['pins']['h_layer'] if orientation == 'horizontal' else self.specs['pins']['v_layer']
             center = None
             if pin['name'] in self.specs['pins'].keys():

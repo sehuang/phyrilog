@@ -1,10 +1,12 @@
-from scripts.asap7.get_srams import SRAMList
-from libraries.bbox_libs import *
+from get_srams import SRAMList
 import shutil
-from LIBBuilder import *
-from GDSBuilder import *
-from utilities import *
+from phyrilog.libraries.bbox_libs import *
+from phyrilog.LIBBuilder import *
+from phyrilog.GDSBuilder import *
+from phyrilog.utilities import *
+from phyrilog.verilog_pin_extract import VerilogModule
 import numpy as np
+import re
 
 class SRAMBBox:
     """This object is a wrapper for all the generators and views2 associated with a single SRAM BBox instance."""
@@ -70,7 +72,7 @@ class SRAMBBox:
             self.characterizer = characterizer(self.word_length, self.num_addr)
         else:
             self.characterizer = None
-        self.phy = BBoxPHY(self.verilog_module, techfile, spec_dict=self.specs)
+        self.phy = BBoxPHY(self.verilog_module, techfile, spec_dict=self.specs, prescale=0.25)
 
         views_dir_path = pathlib.Path(os.path.abspath(views_dir))
         if not os.path.exists(views_dir_path):
@@ -120,7 +122,9 @@ class SRAMBBox:
 
     def build_all_xN(self, N, lef_path=None, gds_path=None, lib_path=None, build_lib=False):
         self.phy.scale(N)
-        self.name = self.name + f'_x{N}'
+        N_str = str(N)
+        re.sub(r'\.', 'p', N_str)
+        self.name = self.name + f'_x{N_str}'
         print(f'Building {self.name} phy views...')
         self.build_lef(path=lef_path)
         self.build_gds(path=gds_path)
@@ -196,13 +200,14 @@ class ASAP7Characterizer(Characterizer):
         # For simplicity make rise & fall equal (dominated by sense amp)
         elif arc_type == 'cell_rise' or arc_type == 'cell_fall':
             if corner.name == 'PVT_0P63V_100C':
-            	R = 50
-            	i1 = 1.05
-            	i2 = 1.15
+                R = 50
+                i1 = 1.05
+                i2 = 1.15
             else:
                 R = 30
                 i1 = 1.02
                 i2 = 1.1
+
             time = R * i1**np.log(10*params['input_net_transition']) * i2**np.log(10*params['total_output_net_capacitance']) * (1 + self.num_addr/10)
             return round(float(time), 4)
         elif arc_type == 'rise_transition' or arc_type == 'fall_transition':
@@ -219,7 +224,7 @@ class ASAP7Characterizer(Characterizer):
             return round(float(time), 4)
         else:
             return round(float(5.0), 4)
-            
+
         pass
 
 
@@ -342,4 +347,3 @@ class ASAP7SRAMs:
     def build_all_srams(self):
         for sram_obj in self.srams:
             self.build_all_sram_views(sram_obj)
-

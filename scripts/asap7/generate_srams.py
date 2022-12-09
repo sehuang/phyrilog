@@ -1,8 +1,15 @@
 #! /users/sehuang/.local/bin/python3.6
 
-from scripts.asap7.gen_srams import ASAP7SRAMs
+import sys
 import pathlib
 import os
+
+project_parent = pathlib.Path().resolve().parents[0]
+os.environ['PYTHONPATH'] = str(project_parent)
+
+sys.path.append(os.path.abspath('../..'))
+
+from gen_srams import ASAP7SRAMs
 
 this_path = os.path.abspath('')
 projects_dir = pathlib.Path(this_path).parents[0]
